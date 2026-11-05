@@ -76,11 +76,18 @@ class ReleaseDecision(StrEnum):
     APPROVED = "approved"
     REJECTED = "rejected"
 
+class AgentExecution(BaseModel):
+    agent: str
+    status: str
+    duration_ms: float = Field(ge=0)
+    finding_count: int = Field(ge=0)
+
 class ReleaseRecord(BaseModel):
     release_id: str = Field(default_factory=lambda: str(uuid4()))
     created_at: datetime = Field(default_factory=utc_now)
     request: ReleaseRequest
     findings: list[Finding]
+    agent_executions: list[AgentExecution] = Field(default_factory=list)
     risk: RiskBreakdown
     decision: ReleaseDecision = ReleaseDecision.REVIEW_REQUIRED
     deployment_checklist: list[str]
