@@ -18,6 +18,7 @@ ReleaseGuard AI is a local-first prototype that analyses a submitted change set,
 - Deployment checklist, rollback plan, and human approve/reject endpoints.
 - Concurrent specialist-agent orchestration with per-agent execution metadata.
 - Optional Semgrep CE static-analysis and OSV-Scanner v2 dependency-advisory adapters when their CLIs are installed.
+- GitHub Actions JUnit and Cobertura coverage artifact ingestion, including per-changed-file coverage findings.
 - API, risk-engine, GitHub-ingestion and scanner-adapter tests.
 
 ## Quick start
@@ -60,6 +61,28 @@ Start the API, then call:
 
 Example: `POST http://127.0.0.1:8000/api/github/octocat/Hello-World/pulls/1/analyse` (the PR must be open). The endpoint fetches metadata and up to 500 changed files, maps added lines from `requirements.txt` changes into the dependency check, and returns the usual ReleaseGuard assessment. GitHub file patches may be absent for binary or very large files; those files are listed but cannot be inspected by the current text-based heuristics. GitHub PR test results are not inferred: attach test evidence through the regular release request until a CI provider integration is implemented.
 
+## GitHub Actions test evidence
+
+The CI workflow uploads a \`releaseguard-test-evidence\` artifact containing
+JUnit test results and Cobertura \`coverage.xml\`. After a pull-request workflow
+run completes, analyse that exact run with:
+
+\`POST /api/github/{owner}/{repo}/pulls/{number}/runs/{run_id}/analyse\`
+
+The endpoint verifies that the run is completed, was triggered by
+\`pull_request\`, is associated with the requested PR, and matches the PR's
+current head SHA. It then downloads the named artifact through the read-only
+GitHub Actions API and parses JUnit totals plus overall and per-file coverage.
+The API token needs Actions: read and Pull requests: read access for private
+repositories. Artifacts are limited to 15 MB; individual XML reports are
+limited to 5 MB. Artifacts expire after 14 days under the CI workflow settings.
+
+Changed source files absent from the coverage report and changed source files
+below 60% coverage produce separate test-intelligence findings. Coverage
+filenames are matched by exact path, then by a unique suffix match. If the
+artifact is missing or does not match the current PR head, the endpoint fails
+rather than silently treating missing evidence as a passing test run.
+
 ## API
 
 | Method | Endpoint | Purpose |
@@ -67,6 +90,7 @@ Example: `POST http://127.0.0.1:8000/api/github/octocat/Hello-World/pulls/1/anal
 | GET | `/health` | Liveness check |
 | POST | `/api/releases` | Create and analyse a release |
 | POST | `/api/github/{owner}/{repo}/pulls/{number}/analyse` | Fetch and analyse an open GitHub PR (read-only) |
+| POST | `/api/github/{owner}/{repo}/pulls/{number}/runs/{run_id}/analyse` | Analyse an open PR with its matching GitHub Actions test and coverage artifact |
 | GET | `/api/releases/{id}` | Retrieve assessment |
 | GET | `/api/releases/{id}/findings` | List findings |
 | GET | `/api/releases/{id}/report` | Retrieve report and release plan |
