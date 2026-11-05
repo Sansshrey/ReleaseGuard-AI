@@ -8,11 +8,11 @@
 - [x] Unit and API test suite
 
 ## Next increments
-- [ ] Durable database and append-only audit events
+- [x] SQLite persistence and append-only hash-chained audit events (local prototype)
 - [ ] API authentication and role-based authorisation
 - [x] Read-only GitHub pull-request ingestion (open PR metadata and changed-file patches)\n- [ ] Webhook receiver with signature verification
-- [ ] Semgrep and OSV-Scanner integrations
-- [ ] Specialist agent orchestration with bounded tools and checkpointing
+- [x] Optional Semgrep and OSV-Scanner adapters
+- [x] Local specialist-agent orchestration with bounded deterministic analyzers
 - [ ] Policy retrieval with citation validation
 - [ ] React dashboard
 - [ ] Azure infrastructure, managed identity, monitoring and CI/CD
