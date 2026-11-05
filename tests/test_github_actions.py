@@ -58,3 +58,14 @@ def test_requires_at_least_one_recognized_report():
     artifact = _zip({"notes.txt": "nothing"})
     with pytest.raises(ValueError, match="neither a readable"):
         parse_evidence_artifact(artifact, 1)
+
+
+
+def test_artifact_expansion_limit_is_enforced():
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("junit.xml", '<testsuite tests="0"/>')
+        archive.writestr("coverage.xml", '<coverage line-rate="0.8"/>')
+        archive.writestr("other.xml", "x" * (20 * 1024 * 1024))
+    with pytest.raises(ValueError, match="expands beyond"):
+        parse_evidence_artifact(buffer.getvalue(), 7)
