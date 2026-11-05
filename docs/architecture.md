@@ -9,11 +9,11 @@ LLM analysis mode.
    Framework specialists against sanitised evidence.
 3. Specialist findings are validated and aggregated. LLM findings must cite
    exact supplied evidence and a changed-file path.
-4. The deterministic risk engine computes the weighted score; model output
+4. When RAG is enabled, each hosted specialist retrieves relevant version-controlled policy chunks from Azure AI Search using Azure OpenAI embeddings. Returned policy references are validated against that retrieval result; release evidence is validated independently.\n5. The deterministic risk engine computes the weighted score; model output
    cannot directly set a score or release decision.
-5. A release record is persisted in SQLite. Creation and human decisions append
+6. A release record is persisted in SQLite. Creation and human decisions append
    hash-chained audit events.
-6. Human approval/rejection remains an explicit API action.
+7. Human approval/rejection remains an explicit API action.
 
 ```mermaid
 flowchart TD
