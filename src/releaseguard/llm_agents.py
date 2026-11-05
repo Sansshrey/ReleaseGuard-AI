@@ -16,8 +16,8 @@ from .models import Finding, ReleaseRequest, Severity
 MAX_FINDINGS = 20
 MAX_PROMPT_CHARS = 80_000
 _SECRET_PATTERNS = (
-    re.compile(r"(?i)(api[_-]?key|client[_-]?secret|password|token)\s*[:=]\s*(['\"])[^'\"]{8,}\s"),
-    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\s]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+    re.compile(r"(?i)(api[_-]?key|client[_-]?secret|password|token)\s*[:=]\s*(['"])[^'"]{8,}\2"),
+    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     re.compile(r"(?i)gh[pousr]_[A-Za-z0-9_]{20,}"),
 )
 
