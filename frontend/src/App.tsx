@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type CSSProperties } from "react";
 import {AlertTriangle,ArrowUpRight,CheckCircle2,Clock3,FileCode2,GitPullRequest,Loader2,ShieldCheck,XCircle} from "lucide-react";
 import { api, type ReleaseReport } from "./api";
 
@@ -10,7 +10,7 @@ const demo: ReleaseReport = {release_id:"demo-8f3c2a",repository:"Sansshrey/Rele
 
 type RiskTone = "critical" | "elevated" | "safe";
 const tone=(s: number): RiskTone => s>=70 ? "critical" : s>=45 ? "elevated" : "safe";
-function Ring({score}: {score: number}){return <div className={"risk-ring "+tone(score)} style={{"--score":score} as React.CSSProperties}><div><strong>{score}</strong><span>/100</span></div></div>}
+function Ring({score}: {score: number}){return <div className={"risk-ring "+tone(score)} style={{"--score":score} as CSSProperties}><div><strong>{score}</strong><span>/100</span></div></div>}
 function Severity({value}: {value: string}){return <span className={"severity "+value}>{value}</span>}
 
 export default function App(){
@@ -19,7 +19,7 @@ export default function App(){
  const f=report.findings||[],r=report.risk||{};
  const counts=useMemo(()=>({critical:f.filter(x=>x.severity==="critical").length,high:f.filter(x=>x.severity==="high").length,medium:f.filter(x=>x.severity==="medium").length,low:f.filter(x=>x.severity==="low").length}),[f]);
  async function load(e: FormEvent<HTMLFormElement>){e.preventDefault();if(!id.trim())return;setLoading(true);setError("");try{setReport(await api.getReport(id.trim()));setApiState("Live report")}catch(x){setError(x instanceof Error ? x.message : "Request failed.")}finally{setLoading(false)}}
- async function decide(ok: boolean){if(!id.trim()||note.trim().length<3){setError("Enter a decision note before approving or rejecting.");return}setLoading(true);setError("");try{const u=ok?await api.approve(id.trim(),note.trim()):await api.reject(id.trim(),note.trim());setReport(await api.getReport(u.release_id));setNote("")}catch(x){setError(x.message)}finally{setLoading(false)}}
+ async function decide(ok: boolean){if(!id.trim()||note.trim().length<3){setError("Enter a decision note before approving or rejecting.");return}setLoading(true);setError("");try{const u=ok?await api.approve(id.trim(),note.trim()):await api.reject(id.trim(),note.trim());setReport(await api.getReport(u.release_id));setNote("")}catch(x){setError(x instanceof Error ? x.message : "Decision request failed.")}finally{setLoading(false)}}
  return <div className="shell">
   <aside className="side"><div className="brand"><div className="mark"><ShieldCheck size={21}/></div><div><b>ReleaseGuard</b><small>AI Release Governance</small></div></div>
    <nav><a className="active"><GitPullRequest size={17}/>Release overview</a><a><ShieldCheck size={17}/>Security</a><a><FileCode2 size={17}/>Code & dependencies</a><a><Clock3 size={17}/>Audit history</a></nav>
