@@ -43,28 +43,36 @@ class GitHubActionsClient(GitHubClient):
             raise GitHubIntegrationError("Artifact ID must be positive.")
         url = f"{GITHUB_API}/repos/{repository}/actions/artifacts/{artifact_id}/zip"
         try:
+            chunks: list[bytes] = []
+            total = 0
             with httpx.Client(timeout=self.timeout, follow_redirects=True) as client:
-                response = client.get(url, headers=self._headers())
+                with client.stream("GET", url, headers=self._headers()) as response:
+                    if response.status_code in (401, 403):
+                        raise GitHubIntegrationError("GitHub denied artifact access; check Actions read permission.")
+                    if response.status_code == 404:
+                        raise GitHubIntegrationError("Workflow artifact was not found or has expired.")
+                    if response.status_code >= 400:
+                        raise GitHubIntegrationError(
+                            f"GitHub artifact download returned HTTP {response.status_code}."
+                        )
+                    for chunk in response.iter_bytes():
+                        total += len(chunk)
+                        if total > MAX_ARTIFACT_BYTES:
+                            raise GitHubIntegrationError("Workflow evidence artifact exceeds the 15 MB limit.")
+                        chunks.append(chunk)
+        except GitHubIntegrationError:
+            raise
         except httpx.TimeoutException as exc:
             raise GitHubIntegrationError("GitHub artifact download timed out.") from exc
         except httpx.HTTPError as exc:
             raise GitHubIntegrationError("Could not download the GitHub Actions artifact.") from exc
-        if response.status_code in (401, 403):
-            raise GitHubIntegrationError("GitHub denied artifact access; check Actions read permission.")
-        if response.status_code == 404:
-            raise GitHubIntegrationError("Workflow artifact was not found or has expired.")
-        if response.status_code >= 400:
-            raise GitHubIntegrationError(f"GitHub artifact download returned HTTP {response.status_code}.")
-        if len(response.content) > MAX_ARTIFACT_BYTES:
-            raise GitHubIntegrationError("Workflow evidence artifact exceeds the 15 MB limit.")
-        return response.content
-
+        return b"".join(chunks)
 
 def _safe_xml(data: bytes) -> ET.Element:
     if len(data) > MAX_XML_BYTES:
         raise ValueError("XML report exceeds the 5 MB limit.")
     # ElementTree does not fetch external entities; reject DTD/entity declarations too.
-    upper = data[:4096].upper()
+    upper = data.upper()
     if b"<!DOCTYPE" in upper or b"<!ENTITY" in upper:
         raise ValueError("XML report contains a prohibited DTD/entity declaration.")
     return ET.fromstring(data)
@@ -89,6 +97,9 @@ def parse_evidence_artifact(archive_bytes: bytes, run_id: int) -> TestSummary:
         entries = [item for item in archive.infolist() if not item.is_dir()]
         if len(entries) > 100:
             raise ValueError("Workflow evidence artifact contains too many files.")
+        total_uncompressed = sum(item.file_size for item in entries)
+        if total_uncompressed > 20 * 1024 * 1024:
+            raise ValueError("Workflow evidence artifact expands beyond the 20 MB limit.")
         for item in entries:
             name = PurePosixPath(item.filename)
             if name.is_absolute() or ".." in name.parts:
@@ -197,6 +208,9 @@ def load_pull_request_test_evidence(
             f"Workflow run has no unexpired '{ARTIFACT_NAME}' artifact. Check the CI upload step."
         )
     try:
+        artifact_size = int(artifact.get("size_in_bytes", 0))
+        if artifact_size > MAX_ARTIFACT_BYTES:
+            raise GitHubIntegrationError("Workflow evidence artifact exceeds the 15 MB limit.")
         artifact_id = int(artifact.get("id"))
     except (TypeError, ValueError) as exc:
         raise GitHubIntegrationError("GitHub returned an invalid evidence artifact ID.") from exc
