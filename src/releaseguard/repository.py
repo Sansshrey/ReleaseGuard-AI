@@ -6,6 +6,7 @@ import hmac
 import json
 import os
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -24,9 +25,10 @@ class SQLiteReleaseRepository:
     """Local-first SQLite storage. Use managed storage for production."""
 
     def __init__(self, database_path: str | Path | None = None) -> None:
-        self.database_path = str(database_path or os.getenv("RELEASEGUARD_DB_PATH", "releaseguard.db"))
+        configured = database_path or os.getenv("RELEASEGUARD_DB_PATH", "releaseguard.db")
+        self.database_path = str(Path(configured).expanduser()) if str(configured) != ":memory:" else ":memory:"
         if self.database_path != ":memory:":
-            Path(self.database_path).expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
+            Path(self.database_path).resolve().parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
@@ -36,8 +38,16 @@ class SQLiteReleaseRepository:
         db.execute("PRAGMA busy_timeout = 10000")
         return db
 
+    @contextmanager
+    def _connection(self):
+        db = self._connect()
+        try:
+            yield db
+        finally:
+            db.close()
+
     def _initialize(self) -> None:
-        with self._connect() as db:
+        with self._connection() as db:
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS releases (
@@ -98,7 +108,7 @@ class SQLiteReleaseRepository:
         )
 
     def save_new(self, record: ReleaseRecord) -> None:
-        with self._connect() as db:
+        with self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
             db.execute(
                 "INSERT INTO releases VALUES (?, ?, ?, ?)",
