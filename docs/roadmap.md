@@ -13,11 +13,11 @@
 - [x] Azure AI Search vector retrieval, curated Markdown policy corpus and validated policy citation references
 
 ## Planned
-- [ ] C# ASP.NET Core API and authenticated service-to-service integration
-- [ ] Azure Functions asynchronous analysis jobs and durable orchestration
+- [x] C# ASP.NET Core gateway with API-key protection and Python service proxy
+- [x] Azure Functions isolated worker with Service Bus queue processing and Azure Table job status
 - [ ] React + TypeScript dashboard
 - [ ] Azure SQL, Blob Storage, Key Vault, managed identity and deployment infrastructure
-- [ ] Labelled benchmark dataset and measured evaluation report (F1, classification, citation validity, latency and cost)
+- [x] 100-case labelled synthetic benchmark dataset and offline evaluator for F1, classification, citation validity, latency and cost (measured report still pending)
 - [ ] Production authentication, authorisation, monitoring, threat modelling and deployment hardening
 
 Mark roadmap items complete only after implementation and tests exist. Do not publish performance or accuracy claims until measured.
