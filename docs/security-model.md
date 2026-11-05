@@ -1,6 +1,9 @@
 # Security model
 
 ## Current MVP safeguards
+- GitHub integration uses GET requests only and does not merge, comment on, or modify pull requests.
+- Optional `GITHUB_TOKEN` is read from the process environment and is never included in responses.
+- Pull-request file count is capped at 500 and each patch is bounded before validation.
 - Submitted source text is analysed but never executed.
 - Payloads and individual patch sizes are bounded.
 - File paths must be relative and cannot contain parent-directory traversal segments.
