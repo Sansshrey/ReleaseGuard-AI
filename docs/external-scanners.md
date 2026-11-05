@@ -41,3 +41,7 @@ requirements files, so OSV coverage for that path is limited to those lines.
 - Scanner findings identify their source as `semgrep` or `osv_scanner`.
 - Scanner availability and successful execution are not yet separately exposed
   in the API response; an empty finding list does not prove a clean scan.
+
+
+Semgrep result line numbers are translated from the temporary added-lines-only
+file back to the corresponding new-file line numbers in the original diff hunk.
