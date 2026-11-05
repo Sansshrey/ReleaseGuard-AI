@@ -16,7 +16,15 @@ function Severity({value}: {value: string}){return <span className={"severity "+
 export default function App(){
  const[id,setId]=useState(""),[report,setReport]=useState(demo),[loading,setLoading]=useState(false),[apiState,setApiState]=useState("Demo data"),[note,setNote]=useState(""),[error,setError]=useState("");
  useEffect(()=>{api.health().then(()=>setApiState("API connected")).catch(()=>setApiState("Demo data"))},[]);
- const f=report.findings||[],r=report.risk||{};
+ const f = report.findings ?? [];
+ const r: NonNullable<ReleaseReport["risk"]> = report.risk ?? {};
+ const dimensions: Array<[string, number | undefined]> = [
+  ["Security", r.security],
+  ["Code quality", r.code_quality],
+  ["Dependencies", r.dependency],
+  ["Testing", r.testing],
+  ["API compatibility", r.api_compatibility],
+ ];
  const counts=useMemo(()=>({critical:f.filter(x=>x.severity==="critical").length,high:f.filter(x=>x.severity==="high").length,medium:f.filter(x=>x.severity==="medium").length,low:f.filter(x=>x.severity==="low").length}),[f]);
  async function load(e: FormEvent<HTMLFormElement>){e.preventDefault();if(!id.trim())return;setLoading(true);setError("");try{setReport(await api.getReport(id.trim()));setApiState("Live report")}catch(x){setError(x instanceof Error ? x.message : "Request failed.")}finally{setLoading(false)}}
  async function decide(ok: boolean){if(!id.trim()||note.trim().length<3){setError("Enter a decision note before approving or rejecting.");return}setLoading(true);setError("");try{const u=ok?await api.approve(id.trim(),note.trim()):await api.reject(id.trim(),note.trim());setReport(await api.getReport(u.release_id));setNote("")}catch(x){setError(x instanceof Error ? x.message : "Decision request failed.")}finally{setLoading(false)}}
@@ -33,7 +41,7 @@ export default function App(){
     {f.map((x,i)=><article className="finding" key={x.file+i}><div><Severity value={x.severity}/><span className="cat">{x.category}</span></div><h4>{x.title||x.category}{x.file&&<span> · {x.file}{x.line?":"+x.line:""}</span>}</h4><p>{x.description||x.evidence}</p><div className="recommend"><ArrowUpRight size={15}/>{x.recommendation}</div></article>)}
    </section>
    <section className="panel"><div className="panelhead"><div><p className="eyebrow">RISK DIMENSIONS</p><h3>Why this score?</h3></div></div>
-    {[["Security",r.security],["Code quality",r.code_quality],["Dependencies",r.dependency],["Testing",r.testing],["API compatibility",r.api_compatibility]].map(([k,v])=><div className="barrow" key={k}><div><span>{k}</span><b>{v||0}</b></div><div className="bar"><i style={{width:(v||0)+"%"}}/></div></div>)}
+    {dimensions.map(([label, value]) => <div className="barrow" key={label}><div><span>{label}</span><b>{value ?? 0}</b></div><div className="bar"><i style={{width:(value ?? 0)+"%"}}/></div></div>)}
    </section></div>
    <div className="grid lower"><section className="panel"><div className="panelhead"><div><p className="eyebrow">DEPLOYMENT</p><h3>Release checklist</h3></div></div><ul className="checks">{(report.deployment_checklist||[]).map(x=><li key={x}><CheckCircle2 size={16}/>{x}</li>)}</ul></section>
    <section className="panel"><div className="panelhead"><div><p className="eyebrow">RECOVERY</p><h3>Rollback plan</h3></div></div><ol className="rollback">{(report.rollback_plan||[]).map(x=><li key={x}>{x}</li>)}</ol></section></div>
