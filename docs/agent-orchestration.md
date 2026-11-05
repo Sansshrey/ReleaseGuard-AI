@@ -35,3 +35,14 @@ A specialist exception aborts the assessment; partial results are not saved.
 4. Introduce Microsoft Agent Framework behind the same interfaces only after
    validating the supported SDK and preserving the deterministic local mode.
 5. Add durable run state and audit events before any hosted deployment.
+
+
+## Evidence handling in local analyzers
+
+Code-quality and security specialists inspect added lines from unified diffs,
+not removed lines or diff metadata. When a diff hunk header is present, findings
+carry the corresponding new-file line number. Findings retain a file path,
+short evidence excerpt, category, severity, confidence and remediation
+recommendation. These heuristics are intentionally narrow and can miss issues
+or produce false positives; they are not substitutes for Semgrep, dependency
+advisories or a dedicated secrets scanner.
