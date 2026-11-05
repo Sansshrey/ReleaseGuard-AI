@@ -199,6 +199,15 @@ class AzureOpenAISpecialistAgent:
                 source=("azure_openai_agent_framework_rag" if retrieved
                         else "azure_openai_agent_framework"),
                 policy_references=references,
+                policy_citations=[
+                    {
+                        "citation_id": item.chunk_id,
+                        "source": item.source,
+                        "section": item.section,
+                        "title": item.title,
+                    }
+                    for item in retrieved if item.chunk_id in references
+                ],
             ))
         return findings
 
