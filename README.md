@@ -4,7 +4,7 @@
 
 ReleaseGuard AI is a local-first prototype that analyses a submitted change set, reports traceable findings, calculates a transparent risk score, and prepares a human-reviewed release decision.
 
-> **Current status:** A Python FastAPI local MVP is implemented, including read-only GitHub pull-request ingestion, concurrent local specialist agents, optional Semgrep CE / OSV-Scanner v2 adapters, and GitHub Actions JUnit / coverage evidence ingestion. Azure services, hosted LLM agents, durable storage, and production deployment remain future roadmap items.
+> **Current status:** A Python FastAPI local MVP is implemented, including read-only GitHub pull-request ingestion, concurrent local specialist agents, optional Semgrep CE / OSV-Scanner v2 adapters, and GitHub Actions JUnit / coverage evidence ingestion. Azure services, hosted LLM agents, production-grade managed storage, authenticated actors, and production deployment remain future roadmap items.
 
 ## Implemented in this MVP
 
@@ -16,6 +16,7 @@ ReleaseGuard AI is a local-first prototype that analyses a submitted change set,
 - Structured findings with file/line evidence where available.
 - Deterministic weighted risk score (not an LLM-generated score).
 - Deployment checklist, rollback plan, and human approve/reject endpoints.
+- SQLite persistence across API restarts and append-only hash-chained audit events for release creation and decisions.
 - Concurrent specialist-agent orchestration with per-agent execution metadata.
 - GitHub Actions JUnit and Cobertura coverage artifact ingestion, including per-changed-file coverage findings.
 - API, risk-engine, GitHub-ingestion, scanner-adapter and CI-evidence parser tests.
@@ -82,6 +83,20 @@ filenames are matched by exact path, then by a unique suffix match. If the
 artifact is missing or does not match the current PR head, the endpoint fails
 rather than silently treating missing evidence as a passing test run.
 
+## Persistence and audit trail
+
+Release records persist in SQLite across API restarts. Set `RELEASEGUARD_DB_PATH`
+to choose the database file; the default is `releaseguard.db`. Creation and
+human decisions append hash-chained audit events. SQLite triggers reject normal
+UPDATE/DELETE operations on the audit table. This is tamper-evident, not
+tamper-proof; production still requires authenticated actors, restricted
+database access and external log retention.
+
+- `GET /api/releases/{release_id}/audit` returns a release's audit history.
+- `GET /api/audit/integrity` verifies the global audit hash chain.
+
+See [docs/persistence-and-audit.md](docs/persistence-and-audit.md).
+
 ## API
 
 | Method | Endpoint | Purpose |
@@ -110,7 +125,7 @@ Dimensions are normalised to 0–100: security (S), code quality (C), dependency
 - The prototype does not merge pull requests or deploy to production.
 - Local heuristics can produce false positives and are not comprehensive security scanners. Optional Semgrep and OSV-Scanner integrations require their respective CLIs to be installed; unavailable tools are skipped without failing the local assessment.
 - Semgrep scans only reconstructed added diff lines in temporary files. OSV-Scanner checks the supplied Python requirements manifest; a resolved lockfile is preferable for accurate dependency versions.
-- The API currently has no authentication, authorisation, durable storage, or append-only audit log. Do not expose it to the public internet.
+- The API currently has no authentication or authorisation. Audit events are tamper-evident within SQLite, not tamper-proof against a database administrator. Do not expose it to the public internet.
 - GitHub pull-request and Actions evidence ingestion is read-only; no repository workflow is triggered or modified.
 - Treat PR descriptions, comments, filenames and source code as untrusted input.
 
