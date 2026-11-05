@@ -157,3 +157,51 @@ def parse_evidence_artifact(archive_bytes: bytes, run_id: int) -> TestSummary:
         workflow_run_id=run_id,
         skipped=skipped,
     )
+
+
+
+def load_pull_request_test_evidence(
+    client: GitHubActionsClient,
+    owner: str,
+    name: str,
+    pull_number: int,
+    run_id: int,
+    expected_head_sha: str | None,
+) -> TestSummary:
+    """Require a completed workflow run for this exact PR head before parsing evidence."""
+    run = client.get_workflow_run(owner, name, run_id)
+    if run.get("status") != "completed":
+        raise GitHubIntegrationError("Workflow run has not completed; test evidence is not final.")
+    if run.get("event") != "pull_request":
+        raise GitHubIntegrationError("Only pull_request workflow runs can supply PR test evidence.")
+    if expected_head_sha and run.get("head_sha") != expected_head_sha:
+        raise GitHubIntegrationError("Workflow run does not match the pull request's current head commit.")
+
+    linked_prs = run.get("pull_requests") or []
+    if not any(
+        isinstance(item, dict) and item.get("number") == pull_number
+        for item in linked_prs
+    ):
+        raise GitHubIntegrationError("Workflow run is not associated with the requested pull request.")
+
+    artifacts = client.get_workflow_artifacts(owner, name, run_id)
+    artifact = next(
+        (
+            item for item in artifacts
+            if item.get("name") == ARTIFACT_NAME and not item.get("expired", False)
+        ),
+        None,
+    )
+    if artifact is None:
+        raise GitHubIntegrationError(
+            f"Workflow run has no unexpired '{ARTIFACT_NAME}' artifact. Check the CI upload step."
+        )
+    try:
+        artifact_id = int(artifact.get("id"))
+    except (TypeError, ValueError) as exc:
+        raise GitHubIntegrationError("GitHub returned an invalid evidence artifact ID.") from exc
+    archive = client.download_artifact(owner, name, artifact_id)
+    try:
+        return parse_evidence_artifact(archive, run_id)
+    except ValueError as exc:
+        raise GitHubIntegrationError(f"Could not parse workflow test evidence: {exc}") from exc
