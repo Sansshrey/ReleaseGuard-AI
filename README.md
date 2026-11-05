@@ -107,6 +107,8 @@ See [docs/persistence-and-audit.md](docs/persistence-and-audit.md).
 | POST | `/api/github/{owner}/{repo}/pulls/{number}/runs/{run_id}/analyse` | Analyse an open PR with its matching GitHub Actions test and coverage artifact |
 | GET | `/api/releases/{id}` | Retrieve assessment |
 | GET | `/api/releases/{id}/findings` | List findings |
+| GET | `/api/releases/{id}/audit` | Read release audit history |
+| GET | `/api/audit/integrity` | Verify the global audit hash chain |
 | GET | `/api/releases/{id}/report` | Retrieve report and release plan |
 | POST | `/api/releases/{id}/approve` | Record human approval |
 | POST | `/api/releases/{id}/reject` | Record human rejection |
