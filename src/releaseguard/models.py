@@ -28,7 +28,7 @@ class Finding(BaseModel):
     line: int | None = Field(default=None, ge=1)
     evidence: str
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
-    source: str = "local_heuristic"
+    source: str = "local_heuristic"\n    policy_references: list[str] = Field(default_factory=list, max_length=10)
 
 class ChangedFile(BaseModel):
     path: str = Field(min_length=1, max_length=500)
