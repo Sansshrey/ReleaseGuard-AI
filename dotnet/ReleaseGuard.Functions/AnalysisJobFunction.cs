@@ -17,7 +17,7 @@ public sealed class AnalysisJobFunction(
         [ServiceBusTrigger("%ReleaseGuardQueue%", Connection = "ServiceBusConnection")] string message,
         CancellationToken cancellationToken)
     {
-        var job = JsonSerializer.Deserialize<AnalysisJob>(message);
+        var job = JsonSerializer.Deserialize<AnalysisJob>(message, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         if (job is null || !Guid.TryParseExact(job.JobId, "N", out _))
             throw new InvalidOperationException("Queue message is not a valid ReleaseGuard analysis job.");
 
