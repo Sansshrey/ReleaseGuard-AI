@@ -9,7 +9,8 @@ ReleaseGuard AI is a local-first prototype that analyses a submitted change set,
 ## Implemented in this MVP
 
 - Validated release submissions using Pydantic.
-- Bounded local pattern checks for credential-like strings and risky configurations.
+- Bounded local pattern checks for credential-like strings, risky configurations and selected code-quality issues.
+- Optional Semgrep CE static-analysis and OSV-Scanner v2 dependency-advisory adapters (when their CLIs are installed).
 - Dependency manifest checks for unconstrained Python requirements.
 - Test evidence checks for failures, missing results, and low reported coverage.
 - Structured findings with file/line evidence where available.
@@ -80,12 +81,13 @@ Dimensions are normalised to 0–100: security (S), code quality (C), dependency
 
 - Submitted code is analysed as text and is never executed.
 - The prototype does not merge pull requests or deploy to production.
-- Local pattern checks can produce false positives and are not comprehensive security scanners.
+- Local heuristics can produce false positives and are not comprehensive security scanners. Optional Semgrep and OSV-Scanner integrations require their respective CLIs to be installed; unavailable tools are skipped without failing the local assessment.
+- Semgrep scans only reconstructed added diff lines in temporary files. OSV-Scanner checks the supplied Python requirements manifest; a resolved lockfile is preferable for accurate dependency versions.
 - The API currently has no authentication, authorisation, durable storage, or append-only audit log. Do not expose it to the public internet.
 - Future GitHub ingestion should be read-only by default and verify webhook signatures.
 - Treat PR descriptions, comments, filenames and source code as untrusted input.
 
-See [docs/architecture.md](docs/architecture.md), [docs/security-model.md](docs/security-model.md), and [docs/risk-scoring.md](docs/risk-scoring.md).
+Install Semgrep CE and OSV-Scanner v2 separately to enable the optional scanner adapters. Semgrep uses its `scan --config auto --json` interface; OSV-Scanner uses `scan source --format json` against a temporary requirements file. Both calls have a 45-second timeout. See [docs/architecture.md](docs/architecture.md), [docs/security-model.md](docs/security-model.md), and [docs/risk-scoring.md](docs/risk-scoring.md).
 
 ## Roadmap
 
