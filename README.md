@@ -159,10 +159,10 @@ findings. The supervisor records execution duration and finding count for each
 agent. If a specialist fails, the assessment fails rather than presenting a
 partial result as complete. Results are returned in stable agent order.
 
-This is a real, local orchestration layer, but the specialists currently use
-bounded deterministic heuristics. It is **not yet an LLM-powered agent system**
-and does not yet use Microsoft Agent Framework, Azure AI Foundry, or hosted
-agent services. Submitted code is never executed.
+This local orchestration layer runs deterministic specialists by default. When
+Azure mode is enabled, four Microsoft Agent Framework reviewers run alongside
+them. Optional Azure AI Search RAG supplies policy context with validated
+citations. Submitted code is never executed.
 
 ## Microsoft Agent Framework + Azure OpenAI (optional)
 
