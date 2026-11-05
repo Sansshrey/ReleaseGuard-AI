@@ -46,10 +46,12 @@ def _added_lines(patch: str) -> tuple[str, list[int]]:
     added: list[str] = []
     line_numbers: list[int] = []
     new_line: int | None = None
+    saw_hunk = False
     hunk = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
     for raw in patch.splitlines():
         match = hunk.match(raw)
         if match:
+            saw_hunk = True
             new_line = int(match.group(1))
         elif raw.startswith(("+++", "---")):
             continue
@@ -61,6 +63,9 @@ def _added_lines(patch: str) -> tuple[str, list[int]]:
             continue
         elif raw.startswith(" ") and new_line is not None:
             new_line += 1
+    if not saw_hunk:
+        raw_lines = patch.splitlines()
+        return patch, list(range(1, len(raw_lines) + 1))
     return "\n".join(added), line_numbers
 
 
