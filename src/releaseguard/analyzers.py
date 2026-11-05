@@ -159,7 +159,8 @@ def analyse_tests(request: ReleaseRequest) -> list[Finding]:
             category="failing_tests", title="Test failures reported",
             description=f"{summary.failed} of {summary.total} reported tests failed.",
             recommendation="Resolve failures or document an explicit, reviewed waiver.",
-            evidence=f"passed={summary.passed}, failed={summary.failed}, total={summary.total}",
+            evidence=f"passed={summary.passed}, failed={summary.failed}, skipped={summary.skipped}, total={summary.total}",
+            source=summary.evidence_source or "local_heuristic",
         ))
     if summary.total == 0:
         findings.append(Finding(
@@ -168,6 +169,7 @@ def analyse_tests(request: ReleaseRequest) -> list[Finding]:
             description="No test execution results were attached to this release.",
             recommendation="Run relevant unit, integration and regression tests and attach results.",
             evidence="test_summary.total = 0",
+            source=summary.evidence_source or "local_heuristic",
         ))
     if summary.coverage_files:
         coverage_by_path = {
@@ -211,5 +213,6 @@ def analyse_tests(request: ReleaseRequest) -> list[Finding]:
             description=f"Reported coverage is {summary.coverage_percent:.1f}%.",
             recommendation="Add tests for changed modules and review coverage exclusions.",
             evidence=f"coverage_percent={summary.coverage_percent}",
+            source=summary.evidence_source or "local_heuristic",
         ))
     return findings
