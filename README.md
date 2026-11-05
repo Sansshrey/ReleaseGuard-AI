@@ -62,14 +62,14 @@ Example: `POST http://127.0.0.1:8000/api/github/octocat/Hello-World/pulls/1/anal
 
 ## GitHub Actions test evidence
 
-The CI workflow uploads a \`releaseguard-test-evidence\` artifact containing
-JUnit test results and Cobertura \`coverage.xml\`. After a pull-request workflow
+The CI workflow uploads a `releaseguard-test-evidence` artifact containing
+JUnit test results and Cobertura `coverage.xml`. After a pull-request workflow
 run completes, analyse that exact run with:
 
-\`POST /api/github/{owner}/{repo}/pulls/{number}/runs/{run_id}/analyse\`
+`POST /api/github/{owner}/{repo}/pulls/{number}/runs/{run_id}/analyse`
 
 The endpoint verifies that the run is completed, was triggered by
-\`pull_request\`, is associated with the requested PR, and matches the PR's
+`pull_request`, is associated with the requested PR, and matches the PR's
 current head SHA. It then downloads the named artifact through the read-only
 GitHub Actions API and parses JUnit totals plus overall and per-file coverage.
 The API token needs Actions: read and Pull requests: read access for private
