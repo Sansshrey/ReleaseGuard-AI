@@ -1,13 +1,18 @@
 """Bounded specialist agents used by the local release assessment workflow.
 
-These agents deliberately use deterministic local analyzers. They do not execute
-submitted code, call external models, or make deployment decisions.
+These agents use deterministic local analyzers. They do not execute submitted
+code, call external models, or make deployment decisions.
 """
 from __future__ import annotations
 
 from typing import Protocol
 
-from .analyzers import analyse_changes, analyse_dependencies, analyse_tests
+from .analyzers import (
+    analyse_code_changes,
+    analyse_dependencies,
+    analyse_security_changes,
+    analyse_tests,
+)
 from .models import Finding, ReleaseRequest
 
 
@@ -24,14 +29,14 @@ class CodeAnalysisAgent:
     name = "code_analysis"
 
     def run(self, request: ReleaseRequest) -> list[Finding]:
-        return [item for item in analyse_changes(request) if item.agent == self.name]
+        return analyse_code_changes(request)
 
 
 class SecurityAnalysisAgent:
     name = "security_analysis"
 
     def run(self, request: ReleaseRequest) -> list[Finding]:
-        return [item for item in analyse_changes(request) if item.agent == self.name]
+        return analyse_security_changes(request)
 
 
 class DependencyAnalysisAgent:
