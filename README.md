@@ -47,12 +47,23 @@ Run tests with:
 pytest
 ```
 
+## GitHub pull-request analysis
+
+The MVP can fetch an **open** pull request and its changed-file patches using GitHub's read-only REST API. Set `GITHUB_TOKEN` in your local environment when analysing private repositories or when you need authenticated API rate limits. Use a fine-grained token restricted to the target repository with **Pull requests: read-only** permission. Never commit the token.
+
+Start the API, then call:
+
+`POST /api/github/{owner}/{repo}/pulls/{number}/analyse`
+
+Example: `POST http://127.0.0.1:8000/api/github/octocat/Hello-World/pulls/1/analyse` (the PR must be open). The endpoint fetches metadata and up to 500 changed files, maps added lines from `requirements.txt` changes into the dependency check, and returns the usual ReleaseGuard assessment. GitHub file patches may be absent for binary or very large files; those files are listed but cannot be inspected by the current text-based heuristics. GitHub PR test results are not inferred: attach test evidence through the regular release request until a CI provider integration is implemented.
+
 ## API
 
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | `/health` | Liveness check |
 | POST | `/api/releases` | Create and analyse a release |
+| POST | `/api/github/{owner}/{repo}/pulls/{number}/analyse` | Fetch and analyse an open GitHub PR (read-only) |
 | GET | `/api/releases/{id}` | Retrieve assessment |
 | GET | `/api/releases/{id}/findings` | List findings |
 | GET | `/api/releases/{id}/report` | Retrieve report and release plan |
