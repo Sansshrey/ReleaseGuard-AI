@@ -189,3 +189,26 @@ remain authoritative.
 Hosted analysis transmits sanitised code snippets and release evidence to the
 configured Azure OpenAI resource. Enable it only where that transfer is allowed.
 See [docs/azure-openai-agents.md](docs/azure-openai-agents.md).
+
+
+## Azure AI Search policy RAG (optional)
+
+ReleaseGuard can retrieve version-controlled security, dependency and release-readiness
+policy passages using Azure AI Search vector search. Azure OpenAI creates the embeddings.
+Retrieved passages are supplied to the hosted specialist agents as advisory context.
+Each AI finding can include policy citation IDs, and the API rejects IDs that were not
+retrieved for that review. Findings must still cite exact release evidence, and the
+deterministic risk score remains authoritative.
+
+Install with `pip install -e ".[azure-rag]"`. Set
+`RELEASEGUARD_RAG_ENABLED=true`, configure Azure AI Search endpoint/key/index and
+an Azure OpenAI embedding deployment, then index the starter corpus:
+
+```bash
+python -m releaseguard.rag --source-dir knowledge/policies
+```
+
+The starter Markdown corpus is in `knowledge/policies/`. See
+[docs/azure-ai-search-rag.md](docs/azure-ai-search-rag.md) for setup, security
+boundaries and limitations. RAG is off by default and requires the hosted
+Azure OpenAI provider.
