@@ -71,6 +71,7 @@ def test_azure_knowledge_base_retrieval_uses_vector_search():
         openai_endpoint="https://example.openai.azure.com", openai_api_key="fake",
         dimensions=2, search_client=Search(), index_client=object(),
         embedding_client=Embeddings(),
+        vector_query_factory=lambda **kwargs: type("VectorQuery", (), kwargs)(),
     )
     results = knowledge.retrieve("TLS certificate validation")
     assert len(results) == 1
