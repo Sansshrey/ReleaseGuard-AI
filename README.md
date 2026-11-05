@@ -4,7 +4,7 @@
 
 ReleaseGuard AI is a local-first prototype that analyses a submitted change set, reports traceable findings, calculates a transparent risk score, and prepares a human-reviewed release decision.
 
-> **Current status:** A Python FastAPI local MVP is implemented. Azure services, hosted LLM agents, live GitHub ingestion, and production deployment are future roadmap items—not current capabilities.
+> **Current status:** A Python FastAPI local MVP is implemented, including read-only GitHub pull-request ingestion, concurrent local specialist agents, and optional Semgrep CE / OSV-Scanner v2 adapters. Azure services, hosted LLM agents, durable storage, and production deployment remain future roadmap items.
 
 ## Implemented in this MVP
 
@@ -16,7 +16,9 @@ ReleaseGuard AI is a local-first prototype that analyses a submitted change set,
 - Structured findings with file/line evidence where available.
 - Deterministic weighted risk score (not an LLM-generated score).
 - Deployment checklist, rollback plan, and human approve/reject endpoints.
-- API and risk-engine tests.
+- Concurrent specialist-agent orchestration with per-agent execution metadata.
+- Optional Semgrep CE static-analysis and OSV-Scanner v2 dependency-advisory adapters when their CLIs are installed.
+- API, risk-engine, GitHub-ingestion and scanner-adapter tests.
 
 ## Quick start
 
