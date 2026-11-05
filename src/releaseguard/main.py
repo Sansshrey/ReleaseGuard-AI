@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from .github_client import GitHubClient, GitHubIntegrationError
 from .github_ingestion import build_release_request
+from .github_actions import GitHubActionsClient, load_pull_request_test_evidence
 from .models import ReleaseRecord, ReleaseRequest
 from .service import ReleaseNotFoundError, ReleaseService
 
@@ -27,6 +28,24 @@ def analyse_github_pull_request(owner: str, name: str, number: int):
     """Fetch an open PR using read-only GitHub API access and analyse its diff."""
     try:
         request = build_release_request(GitHubClient(), owner, name, number)
+        return service.analyse(request)
+    except GitHubIntegrationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.post("/api/github/{owner}/{name}/pulls/{number}/runs/{run_id}/analyse", response_model=ReleaseRecord, status_code=201)
+def analyse_github_pull_request_with_ci(owner: str, name: str, number: int, run_id: int):
+    """Analyse an open PR using its matching completed GitHub Actions test artifact."""
+    try:
+        request = build_release_request(GitHubClient(), owner, name, number)
+        request.test_summary = load_pull_request_test_evidence(
+            GitHubActionsClient(), owner, name, number, run_id,
+            request.metadata.get("head_sha"),
+        )
+        request.metadata["workflow_run_id"] = run_id
+        request.metadata["test_evidence_source"] = "github_actions"
         return service.analyse(request)
     except GitHubIntegrationError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
