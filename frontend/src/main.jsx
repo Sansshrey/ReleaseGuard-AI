@@ -1,5 +1,13 @@
 import React from "react";
-import {createRoot} from "react-dom/client";
-import App from "./App";
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
 import "./styles.css";
-createRoot(document.getElementById("root")).render(<React.StrictMode><App/></React.StrictMode>);
+
+const root = document.getElementById("root");
+if (!root) throw new Error("ReleaseGuard root element was not found.");
+
+createRoot(root).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
