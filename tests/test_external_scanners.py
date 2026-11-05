@@ -51,6 +51,7 @@ def test_semgrep_results_are_mapped_to_original_file(monkeypatch):
     findings = scan_semgrep(_request())
     assert len(findings) == 1
     assert findings[0].file == "src/service.py"
+    assert findings[0].line == 8
     assert findings[0].source == "semgrep"
     assert findings[0].severity.value == "high"
 
