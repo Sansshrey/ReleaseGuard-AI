@@ -94,3 +94,26 @@ See [docs/roadmap.md](docs/roadmap.md). Planned increments include durable persi
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+
+## Specialist-agent workflow
+
+Release assessments are now routed through a local supervisor that dispatches
+four bounded specialists concurrently:
+
+- **Code analysis** — flags security-sensitive code paths for focused review.
+- **Security analysis** — checks submitted diff text for selected risky patterns
+  and credential-like values.
+- **Dependency analysis** — checks supported Python requirements input for
+  unconstrained dependencies.
+- **Test intelligence** — evaluates supplied test results and coverage evidence.
+
+Each specialist follows a shared `run(request)` contract and returns structured
+findings. The supervisor records execution duration and finding count for each
+agent. If a specialist fails, the assessment fails rather than presenting a
+partial result as complete. Results are returned in stable agent order.
+
+This is a real, local orchestration layer, but the specialists currently use
+bounded deterministic heuristics. It is **not yet an LLM-powered agent system**
+and does not yet use Microsoft Agent Framework, Azure AI Foundry, or hosted
+agent services. Submitted code is never executed.
