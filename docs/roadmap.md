@@ -10,9 +10,9 @@
 - [x] Local specialist-agent orchestration
 - [x] Opt-in Microsoft Agent Framework + Azure OpenAI specialist-agent integration
 - [x] Azure-agent evidence validation, secret redaction and mock-based tests
+- [x] Azure AI Search vector retrieval, curated Markdown policy corpus and validated policy citation references
 
 ## Planned
-- [ ] Retrieval-augmented generation with Azure AI Search and versioned policy citations
 - [ ] C# ASP.NET Core API and authenticated service-to-service integration
 - [ ] Azure Functions asynchronous analysis jobs and durable orchestration
 - [ ] React + TypeScript dashboard
