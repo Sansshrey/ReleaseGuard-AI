@@ -4,7 +4,7 @@
 
 ReleaseGuard AI is a local-first prototype that analyses a submitted change set, reports traceable findings, calculates a transparent risk score, and prepares a human-reviewed release decision.
 
-> **Current status:** The Python FastAPI MVP includes read-only GitHub PR ingestion, SQLite persistence with a hash-chained audit trail, deterministic specialist analysis, optional Semgrep/OSV adapters, and GitHub Actions test evidence. An opt-in Microsoft Agent Framework + Azure OpenAI mode now adds four hosted specialist reviewers. C# API, Azure Functions, RAG/Azure AI Search, production cloud storage, and production deployment remain roadmap items.
+> **Current status:** The Python FastAPI MVP includes read-only GitHub PR ingestion, SQLite persistence with a hash-chained audit trail, deterministic specialist analysis, optional Semgrep/OSV adapters, and GitHub Actions test evidence. An opt-in Microsoft Agent Framework + Azure OpenAI mode adds four hosted specialist reviewers, with optional Azure AI Search policy RAG and validated policy citations. C# API, Azure Functions, production cloud storage, and production deployment remain roadmap items.
 
 ## Implemented in this MVP
 
