@@ -1,6 +1,8 @@
 """FastAPI entry point for the ReleaseGuard AI local MVP."""
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from .github_client import GitHubClient, GitHubIntegrationError
+from .github_ingestion import build_release_request
 from .models import ReleaseRecord, ReleaseRequest
 from .service import ReleaseNotFoundError, ReleaseService
 
