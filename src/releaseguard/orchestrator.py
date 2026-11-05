@@ -73,3 +73,25 @@ class ReleaseSupervisor:
         findings = agent.run(request)
         elapsed_ms = round((perf_counter() - started) * 1000, 2)
         return findings, elapsed_ms
+
+
+def build_supervisor_from_environment() -> ReleaseSupervisor:
+    """Build local specialists and optionally add Microsoft Agent Framework agents."""
+    import os
+
+    agents: list[SpecialistAgent] = [
+        CodeAnalysisAgent(),
+        SecurityAnalysisAgent(),
+        DependencyAnalysisAgent(),
+        TestIntelligenceAgent(),
+    ]
+    provider = os.getenv("RELEASEGUARD_AI_PROVIDER", "local").strip().lower()
+    if provider in {"", "local"}:
+        return ReleaseSupervisor(agents=agents)
+    if provider != "azure_openai":
+        raise ValueError("RELEASEGUARD_AI_PROVIDER must be 'local' or 'azure_openai'")
+
+    from .llm_agents import build_azure_openai_agents
+
+    agents.extend(build_azure_openai_agents())
+    return ReleaseSupervisor(agents=agents)
