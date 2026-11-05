@@ -77,9 +77,9 @@ def chunk_markdown(text: str, *, source: str, max_chars: int = 1800,
         if buffer and len(buffer) + len(piece) + 2 > max_chars:
             emit(buffer, current_section)
             tail = buffer[-overlap_chars:] if overlap_chars else ""
-            buffer = f"{tail}\\n\\n{piece}".strip()
+            buffer = f"{tail}" + chr(10) * 2 + f"{piece}"
         else:
-            buffer = f"{buffer}\\n\\n{piece}".strip()
+            buffer = f"{buffer}" + chr(10) * 2 + f"{piece}"
 
     for line in text.splitlines():
         heading = re.match(r"^#{1,6}\s+(.+?)\s*#*\s*$", line)
