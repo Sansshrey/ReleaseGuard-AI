@@ -1,6 +1,6 @@
 """Release assessment workflow and human decision handling."""
 from .analyzers import analyse_changes, analyse_dependencies, analyse_tests
-from .models import ReleaseRecord, ReleaseRequest
+from .models import ReleaseDecision, ReleaseRecord, ReleaseRequest
 from .risk import calculate_risk
 
 class ReleaseNotFoundError(KeyError):
@@ -40,7 +40,7 @@ class ReleaseService:
 
     def decide(self, release_id: str, approved: bool, note: str) -> ReleaseRecord:
         record = self.get(release_id)
-        record.decision = "approved" if approved else "rejected"
+        record.decision = ReleaseDecision.APPROVED if approved else ReleaseDecision.REJECTED
         record.approval_note = note
         return record
 
