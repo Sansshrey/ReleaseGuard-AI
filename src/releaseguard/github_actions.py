@@ -100,6 +100,9 @@ def parse_evidence_artifact(archive_bytes: bytes, run_id: int) -> TestSummary:
         total_uncompressed = sum(item.file_size for item in entries)
         if total_uncompressed > 20 * 1024 * 1024:
             raise ValueError("Workflow evidence artifact expands beyond the 20 MB limit.")
+        total_uncompressed = sum(item.file_size for item in entries)
+        if total_uncompressed > 20 * 1024 * 1024:
+            raise ValueError("Workflow evidence artifact expands beyond the 20 MB limit.")
         for item in entries:
             name = PurePosixPath(item.filename)
             if name.is_absolute() or ".." in name.parts:
