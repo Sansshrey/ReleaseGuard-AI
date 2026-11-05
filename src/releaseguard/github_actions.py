@@ -122,7 +122,7 @@ def parse_evidence_artifact(archive_bytes: bytes, run_id: int) -> TestSummary:
                 continue
             try:
                 root = _safe_xml(data)
-            except (ET.ParseError, ValueError):
+            except ET.ParseError:
                 continue
 
             if leaf == "coverage.xml" or root.tag.rsplit("}", 1)[-1] == "coverage":
