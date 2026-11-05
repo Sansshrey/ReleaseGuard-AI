@@ -8,7 +8,7 @@ from releaseguard.github_actions import parse_evidence_artifact
 
 def _zip(files):
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w") as archive:
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name, content in files.items():
             archive.writestr(name, content)
     return buffer.getvalue()
