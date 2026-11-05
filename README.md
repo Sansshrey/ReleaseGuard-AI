@@ -4,7 +4,7 @@
 
 ReleaseGuard AI is a local-first prototype that analyses a submitted change set, reports traceable findings, calculates a transparent risk score, and prepares a human-reviewed release decision.
 
-> **Current status:** The Python FastAPI MVP includes read-only GitHub PR ingestion, SQLite persistence with a hash-chained audit trail, deterministic specialist analysis, optional Semgrep/OSV adapters, and GitHub Actions test evidence. An opt-in Microsoft Agent Framework + Azure OpenAI mode adds four hosted specialist reviewers, with optional Azure AI Search policy RAG and validated policy citations. C# API, Azure Functions, production cloud storage, and production deployment remain roadmap items.
+> **Current status:** The Python FastAPI MVP includes read-only GitHub PR ingestion, SQLite persistence with a hash-chained audit trail, deterministic specialist analysis, optional Semgrep/OSV adapters, and GitHub Actions test evidence. An opt-in Microsoft Agent Framework + Azure OpenAI mode adds four hosted specialist reviewers, with optional Azure AI Search policy RAG and validated policy citations. A .NET 10 ASP.NET Core gateway, Service Bus-triggered Azure Functions worker, durable Azure Table job status, and a 100-case synthetic benchmark/evaluator are now included as opt-in integration components.
 
 ## Implemented in this MVP
 
@@ -212,3 +212,29 @@ The starter Markdown corpus is in `knowledge/policies/`. See
 [docs/azure-ai-search-rag.md](docs/azure-ai-search-rag.md) for setup, security
 boundaries and limitations. RAG is off by default and requires the hosted
 Azure OpenAI provider.
+
+
+## .NET gateway and asynchronous analysis
+
+The `.NET 10` components live in `dotnet/`:
+
+- ASP.NET Core gateway with API-key protection and proxy routes to the Python API.
+- `POST /api/jobs` publishes an analysis request to Azure Service Bus and returns HTTP 202.
+- An Azure Functions isolated worker consumes the queue, calls the Python analysis API, and updates job state in Azure Table Storage.
+- `GET /api/jobs/{jobId}` returns queued, processing, completed or failed status.
+
+See [dotnet/README.md](dotnet/README.md) for configuration and run instructions. The gateway requires `GatewayApiKey`. Configure `ReleaseGuardBackendApiKey` in the gateway/worker and `RELEASEGUARD_API_KEY` in Python to protect the private service endpoint. The Python key is optional for local development and enforced when configured.
+
+These cloud components compile in CI but require your own Azure Service Bus and Storage resources for end-to-end execution. The queue worker is at-least-once; see the documented retry/idempotency limitation before production use.
+
+## Benchmark and evaluation
+
+The labelled synthetic dataset is `data/benchmark/release_cases.jsonl` (100 cases). It covers secret exposure, TLS, command injection, SQL injection, dependency constraints, missing test evidence, error handling, timeouts, access control and safe changes.
+
+Provide model outputs as JSONL with one object per `case_id`, containing `findings` and optional `latency_ms` / `estimated_cost_usd`:
+
+```bash
+python -m releaseguard.benchmark --predictions data/benchmark/predictions.jsonl --output benchmark-report.json
+```
+
+The evaluator reports finding precision/recall/F1, severity accuracy/macro-F1, exact-case accuracy, evidence validity, policy citation validity, p50/p95 latency and total estimated cost. No model accuracy, latency or cost result is claimed until real predictions are supplied and evaluated. The included corpus is synthetic and is not a substitute for a representative production-labelled dataset.
