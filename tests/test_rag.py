@@ -50,6 +50,9 @@ def test_azure_knowledge_base_requires_complete_configuration():
 
 def test_azure_knowledge_base_retrieval_uses_vector_search():
     class Embeddings:
+        def __init__(self):
+            self.embeddings = self
+
         def create(self, **kwargs):
             assert kwargs["model"] == "embed-deployment"
             item = type("Item", (), {"embedding": [0.1, 0.2]})()
