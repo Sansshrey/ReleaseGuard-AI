@@ -10,7 +10,7 @@
 ## Next increments
 - [ ] Durable database and append-only audit events
 - [ ] API authentication and role-based authorisation
-- [ ] Read-only GitHub pull-request ingestion and webhook signature verification
+- [x] Read-only GitHub pull-request ingestion (open PR metadata and changed-file patches)\n- [ ] Webhook receiver with signature verification
 - [ ] Semgrep and OSV-Scanner integrations
 - [ ] Specialist agent orchestration with bounded tools and checkpointing
 - [ ] Policy retrieval with citation validation
