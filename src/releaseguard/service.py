@@ -1,6 +1,6 @@
 """Release assessment workflow backed by persistent SQLite storage."""
 from .models import ReleaseDecision, ReleaseRecord, ReleaseRequest
-from .orchestrator import ReleaseSupervisor
+from .orchestrator import ReleaseSupervisor, build_supervisor_from_environment
 from .repository import SQLiteReleaseRepository
 from .risk import calculate_risk
 
@@ -13,7 +13,7 @@ class ReleaseService:
     def __init__(self, supervisor: ReleaseSupervisor | None = None,
                  repository: SQLiteReleaseRepository | None = None) -> None:
         self._repository = repository or SQLiteReleaseRepository()
-        self._supervisor = supervisor or ReleaseSupervisor()
+        self._supervisor = supervisor or build_supervisor_from_environment()
 
     def analyse(self, request: ReleaseRequest) -> ReleaseRecord:
         findings, executions = self._supervisor.analyse(request)
