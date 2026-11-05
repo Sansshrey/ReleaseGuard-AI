@@ -23,7 +23,7 @@ def build_release_request(client: GitHubClient, owner: str, name: str, number: i
 
     for item in files:
         filename = str(item.get("filename", ""))
-        patch = str(item.get("patch") or "")
+        patch = str(item.get("patch") or "")[:100_000]
         if not filename:
             continue
         changed_files.append(ChangedFile(path=filename, patch=patch))
