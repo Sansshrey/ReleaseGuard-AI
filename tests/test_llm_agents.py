@@ -93,3 +93,63 @@ def test_agent_rejects_paths_outside_change_set():
     )
     with pytest.raises(ValueError, match="outside"):
         agent.run(request())
+
+
+
+def test_agent_includes_retrieved_policy_and_validates_policy_citations():
+    from types import SimpleNamespace
+
+    source = request()
+    policy = SimpleNamespace(
+        chunk_id="policy-chunk-1", source="security.md", section="TLS",
+        title="Security baseline", content="TLS verification must remain enabled.",
+    )
+    class KnowledgeBase:
+        def retrieve(self, query, top=5):
+            assert "security" in query
+            assert top == 5
+            return [policy]
+
+    response = json.dumps({"findings": [{
+        "severity": "high", "category": "tls", "title": "TLS verification disabled",
+        "description": "Certificate validation is disabled.",
+        "recommendation": "Enable certificate validation.",
+        "file": "src/client.py", "line": 2,
+        "evidence": "requests.get(url, verify=False)",
+        "policy_references": ["policy-chunk-1"],
+    }]})
+    fake = FakeAgent(response)
+    agent = AzureOpenAISpecialistAgent(
+        name="azure_security_review", finding_agent="security_analysis",
+        specialty="security", instructions="review", agent=fake,
+        knowledge_base=KnowledgeBase(),
+    )
+    findings = agent.run(source)
+    assert findings[0].policy_references == ["policy-chunk-1"]
+    assert findings[0].source == "azure_openai_agent_framework_rag"
+    assert "TLS verification must remain enabled" in fake.prompt
+
+
+def test_agent_rejects_policy_citation_not_returned_by_retriever():
+    from types import SimpleNamespace
+
+    class KnowledgeBase:
+        def retrieve(self, query, top=5):
+            return [SimpleNamespace(
+                chunk_id="allowed-id", source="security.md", section="TLS",
+                title="Security", content="Use TLS verification.",
+            )]
+
+    response = json.dumps({"findings": [{
+        "severity": "high", "category": "tls", "title": "x",
+        "description": "x", "recommendation": "x",
+        "file": "src/client.py", "evidence": "requests.get(url, verify=False)",
+        "policy_references": ["invented-id"],
+    }]})
+    agent = AzureOpenAISpecialistAgent(
+        name="azure_security_review", finding_agent="security_analysis",
+        specialty="security", instructions="review", agent=FakeAgent(response),
+        knowledge_base=KnowledgeBase(),
+    )
+    with pytest.raises(ValueError, match="policy chunk"):
+        agent.run(request())
