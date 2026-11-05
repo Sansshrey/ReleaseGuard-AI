@@ -1,0 +1,11 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "ServiceBusConnection": "",
+    "ReleaseGuardQueue": "releaseguard-analysis",
+    "ReleaseGuardBackendUrl": "http://127.0.0.1:8000",
+    "ReleaseGuardBackendApiKey": ""
+  }
+}
