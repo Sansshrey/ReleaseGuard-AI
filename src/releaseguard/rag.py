@@ -118,7 +118,7 @@ class AzureAISearchKnowledgeBase:
                  openai_api_key: str, api_version: str = "2024-10-21",
                  dimensions: int = 1536, search_client: Any | None = None,
                  index_client: Any | None = None,
-                 embedding_client: Any | None = None) -> None:
+                 embedding_client: Any | None = None,\n                 vector_query_factory: Any | None = None) -> None:
         if not all([endpoint, api_key, index_name, embedding_deployment,
                     openai_endpoint, openai_api_key]):
             raise ValueError("Azure AI Search and Azure OpenAI settings are required")
@@ -157,7 +157,7 @@ class AzureAISearchKnowledgeBase:
             )
         self.search_client = search_client
         self.index_client = index_client
-        self.embedding_client = embedding_client
+        self.embedding_client = embedding_client\n        self.vector_query_factory = vector_query_factory
 
     @classmethod
     def from_environment(cls) -> "AzureAISearchKnowledgeBase":
