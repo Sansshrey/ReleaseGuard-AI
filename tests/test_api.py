@@ -33,3 +33,12 @@ def test_invalid_traversal_path_is_rejected():
 
 def test_missing_release_returns_404():
     assert client.get("/api/releases/not-a-real-id").status_code == 404
+
+
+def test_service_api_key_is_enforced_when_configured(monkeypatch):
+    monkeypatch.setenv("RELEASEGUARD_API_KEY", "test-service-key")
+    assert client.get("/api/audit/integrity").status_code == 401
+    assert client.get("/api/audit/integrity", headers={"X-API-Key": "wrong"}).status_code == 401
+    assert client.get("/api/audit/integrity", headers={"X-API-Key": "test-service-key"}).status_code == 200
+    assert client.get("/health").status_code == 200
+    monkeypatch.delenv("RELEASEGUARD_API_KEY")
