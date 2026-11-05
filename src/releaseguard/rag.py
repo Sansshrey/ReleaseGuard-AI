@@ -77,9 +77,13 @@ def chunk_markdown(text: str, *, source: str, max_chars: int = 1800,
         if buffer and len(buffer) + len(piece) + 2 > max_chars:
             emit(buffer, current_section)
             tail = buffer[-overlap_chars:] if overlap_chars else ""
-            buffer = f"{tail}\n\n{piece}".strip()
+            buffer = f"{tail}
+
+{piece}".strip()
         else:
-            buffer = f"{buffer}\n\n{piece}".strip()
+            buffer = f"{buffer}
+
+{piece}".strip()
 
     for line in text.splitlines():
         heading = re.match(r"^#{1,6}\s+(.+?)\s*#*\s*$", line)
@@ -118,7 +122,8 @@ class AzureAISearchKnowledgeBase:
                  openai_api_key: str, api_version: str = "2024-10-21",
                  dimensions: int = 1536, search_client: Any | None = None,
                  index_client: Any | None = None,
-                 embedding_client: Any | None = None,\n                 vector_query_factory: Any | None = None) -> None:
+                 embedding_client: Any | None = None,
+                 vector_query_factory: Any | None = None) -> None:
         if not all([endpoint, api_key, index_name, embedding_deployment,
                     openai_endpoint, openai_api_key]):
             raise ValueError("Azure AI Search and Azure OpenAI settings are required")
@@ -157,7 +162,8 @@ class AzureAISearchKnowledgeBase:
             )
         self.search_client = search_client
         self.index_client = index_client
-        self.embedding_client = embedding_client\n        self.vector_query_factory = vector_query_factory
+        self.embedding_client = embedding_client
+        self.vector_query_factory = vector_query_factory
 
     @classmethod
     def from_environment(cls) -> "AzureAISearchKnowledgeBase":
@@ -248,9 +254,12 @@ class AzureAISearchKnowledgeBase:
             return []
         if top < 1 or top > 10:
             raise ValueError("top must be between 1 and 10")
-        from azure.search.documents.models import VectorizedQuery
         vector = self._embed(query[:6000])
-        vector_query = VectorizedQuery(
+        factory = self.vector_query_factory
+        if factory is None:
+            from azure.search.documents.models import VectorizedQuery
+            factory = VectorizedQuery
+        vector_query = factory(
             vector=vector, k_nearest_neighbors=top, fields="content_vector"
         )
         results = self.search_client.search(
