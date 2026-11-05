@@ -1,0 +1,14 @@
+{
+  "$schema":"https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion":"1.0.0.0",
+  "parameters":{
+    "namePrefix":{"value":"releaseguard"},
+    "gatewayApiKey":{"value":"REPLACE_WITH_A_LONG_RANDOM_GATEWAY_KEY"},
+    "backendApiKey":{"value":"REPLACE_WITH_A_DIFFERENT_LONG_RANDOM_BACKEND_KEY"},
+    "githubToken":{"value":""},
+    "azureOpenAiApiKey":{"value":""},
+    "searchApiKey":{"value":""},
+    "enableAzureAi":{"value":false},
+    "enableRag":{"value":false}
+  }
+}
