@@ -14,7 +14,7 @@ def test_code_agent_detects_bare_except_on_added_lines():
     findings = CodeAnalysisAgent().run(_request("@@ -1,0 +1,2 @@\n+try:\n+    work()\n+except:\n+    pass"))
     assert len(findings) == 1
     assert findings[0].category == "code_quality"
-    assert findings[0].line == 4
+    assert findings[0].line == 3
 
 
 def test_security_agent_detects_dynamic_execution_on_added_lines():
