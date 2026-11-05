@@ -49,3 +49,13 @@ def test_benchmark_rejects_unknown_prediction_case():
     with pytest.raises(ValueError, match="unknown case"):
         evaluate([{"case_id": "known", "expected_findings": []}],
                  [{"case_id": "unknown", "findings": []}])
+
+
+def test_committed_synthetic_dataset_contains_one_hundred_cases():
+    import json
+    from pathlib import Path
+
+    dataset_path = Path(__file__).parents[1] / "data" / "benchmark" / "release_cases.jsonl"
+    rows = [json.loads(line) for line in dataset_path.read_text(encoding="utf-8").splitlines()]
+    assert len(rows) == 100
+    assert len({row["case_id"] for row in rows}) == 100
