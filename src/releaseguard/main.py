@@ -22,6 +22,17 @@ def health():
 def create_release(request: ReleaseRequest):
     return service.analyse(request)
 
+@app.post("/api/github/{owner}/{name}/pulls/{number}/analyse", response_model=ReleaseRecord, status_code=201)
+def analyse_github_pull_request(owner: str, name: str, number: int):
+    """Fetch an open PR using read-only GitHub API access and analyse its diff."""
+    try:
+        request = build_release_request(GitHubClient(), owner, name, number)
+        return service.analyse(request)
+    except GitHubIntegrationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
 @app.get("/api/releases/{release_id}", response_model=ReleaseRecord)
 def get_release(release_id: str):
     try:
