@@ -59,6 +59,19 @@ def get_release(release_id: str):
     except ReleaseNotFoundError:
         raise HTTPException(status_code=404, detail="Release assessment not found")
 
+@app.get("/api/releases/{release_id}/audit")
+def get_release_audit(release_id: str):
+    try:
+        return {"release_id": release_id, "events": service.list_audit_events(release_id)}
+    except ReleaseNotFoundError:
+        raise HTTPException(status_code=404, detail="Release assessment not found")
+
+
+@app.get("/api/audit/integrity")
+def verify_audit_integrity():
+    return service.verify_audit_chain()
+
+
 @app.get("/api/releases/{release_id}/findings")
 def get_findings(release_id: str):
     try:
