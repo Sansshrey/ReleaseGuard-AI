@@ -92,5 +92,9 @@ def build_supervisor_from_environment() -> ReleaseSupervisor:
 
     from .llm_agents import build_azure_openai_agents
 
-    agents.extend(build_azure_openai_agents())
+    knowledge_base = None
+    if os.getenv("RELEASEGUARD_RAG_ENABLED", "false").strip().lower() in {"1", "true", "yes"}:
+        from .rag import AzureAISearchKnowledgeBase
+        knowledge_base = AzureAISearchKnowledgeBase.from_environment()
+    agents.extend(build_azure_openai_agents(knowledge_base=knowledge_base))
     return ReleaseSupervisor(agents=agents)
