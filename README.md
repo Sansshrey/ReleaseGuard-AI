@@ -4,7 +4,7 @@
 
 ReleaseGuard AI is a local-first prototype that analyses a submitted change set, reports traceable findings, calculates a transparent risk score, and prepares a human-reviewed release decision.
 
-> **Current status:** A Python FastAPI local MVP is implemented, including read-only GitHub pull-request ingestion, concurrent local specialist agents, and optional Semgrep CE / OSV-Scanner v2 adapters. Azure services, hosted LLM agents, durable storage, and production deployment remain future roadmap items.
+> **Current status:** A Python FastAPI local MVP is implemented, including read-only GitHub pull-request ingestion, concurrent local specialist agents, optional Semgrep CE / OSV-Scanner v2 adapters, and GitHub Actions JUnit / coverage evidence ingestion. Azure services, hosted LLM agents, durable storage, and production deployment remain future roadmap items.
 
 ## Implemented in this MVP
 
@@ -17,9 +17,8 @@ ReleaseGuard AI is a local-first prototype that analyses a submitted change set,
 - Deterministic weighted risk score (not an LLM-generated score).
 - Deployment checklist, rollback plan, and human approve/reject endpoints.
 - Concurrent specialist-agent orchestration with per-agent execution metadata.
-- Optional Semgrep CE static-analysis and OSV-Scanner v2 dependency-advisory adapters when their CLIs are installed.
 - GitHub Actions JUnit and Cobertura coverage artifact ingestion, including per-changed-file coverage findings.
-- API, risk-engine, GitHub-ingestion and scanner-adapter tests.
+- API, risk-engine, GitHub-ingestion, scanner-adapter and CI-evidence parser tests.
 
 ## Quick start
 
@@ -59,7 +58,7 @@ Start the API, then call:
 
 `POST /api/github/{owner}/{repo}/pulls/{number}/analyse`
 
-Example: `POST http://127.0.0.1:8000/api/github/octocat/Hello-World/pulls/1/analyse` (the PR must be open). The endpoint fetches metadata and up to 500 changed files, maps added lines from `requirements.txt` changes into the dependency check, and returns the usual ReleaseGuard assessment. GitHub file patches may be absent for binary or very large files; those files are listed but cannot be inspected by the current text-based heuristics. GitHub PR test results are not inferred: attach test evidence through the regular release request until a CI provider integration is implemented.
+Example: `POST http://127.0.0.1:8000/api/github/octocat/Hello-World/pulls/1/analyse` (the PR must be open). The endpoint fetches metadata and up to 500 changed files, maps added lines from `requirements.txt` changes into the dependency check, and returns the usual ReleaseGuard assessment. GitHub file patches may be absent for binary or very large files; those files are listed but cannot be inspected by the current text-based heuristics. GitHub PR test results are not inferred by this diff-only endpoint. To include verified CI evidence, use the GitHub Actions endpoint described below.
 
 ## GitHub Actions test evidence
 
@@ -97,6 +96,8 @@ rather than silently treating missing evidence as a passing test run.
 | POST | `/api/releases/{id}/approve` | Record human approval |
 | POST | `/api/releases/{id}/reject` | Record human rejection |
 
+See [docs/github-actions-evidence.md](docs/github-actions-evidence.md) for the evidence format, validation checks and safety limits.
+
 ## Risk model
 
 `R = 0.30S + 0.25C + 0.20D + 0.15T + 0.10A`
@@ -110,7 +111,7 @@ Dimensions are normalised to 0–100: security (S), code quality (C), dependency
 - Local heuristics can produce false positives and are not comprehensive security scanners. Optional Semgrep and OSV-Scanner integrations require their respective CLIs to be installed; unavailable tools are skipped without failing the local assessment.
 - Semgrep scans only reconstructed added diff lines in temporary files. OSV-Scanner checks the supplied Python requirements manifest; a resolved lockfile is preferable for accurate dependency versions.
 - The API currently has no authentication, authorisation, durable storage, or append-only audit log. Do not expose it to the public internet.
-- Future GitHub ingestion should be read-only by default and verify webhook signatures.
+- GitHub pull-request and Actions evidence ingestion is read-only; no repository workflow is triggered or modified.
 - Treat PR descriptions, comments, filenames and source code as untrusted input.
 
 Install Semgrep CE and OSV-Scanner v2 separately to enable the optional scanner adapters. Semgrep uses its `scan --config auto --json` interface; OSV-Scanner uses `scan source --format json` against a temporary requirements file. Both calls have a 45-second timeout. See [docs/architecture.md](docs/architecture.md), [docs/security-model.md](docs/security-model.md), and [docs/risk-scoring.md](docs/risk-scoring.md).
