@@ -1,20 +1,20 @@
 """Release assessment workflow and human decision handling."""
-from .analyzers import analyse_changes, analyse_dependencies, analyse_tests
 from .models import ReleaseDecision, ReleaseRecord, ReleaseRequest
+from .orchestrator import ReleaseSupervisor
 from .risk import calculate_risk
 
 class ReleaseNotFoundError(KeyError):
     """Raised when a release ID is unknown."""
 
 class ReleaseService:
-    def __init__(self) -> None:
+    def __init__(self, supervisor: ReleaseSupervisor | None = None) -> None:
         self._records: dict[str, ReleaseRecord] = {}
+        self._supervisor = supervisor or ReleaseSupervisor()
 
     def analyse(self, request: ReleaseRequest) -> ReleaseRecord:
-        findings = (analyse_changes(request)
-            + analyse_dependencies(request.dependency_manifest, request.dependency_ecosystem)
-            + analyse_tests(request))
+        findings, agent_executions = self._supervisor.analyse(request)
         record = ReleaseRecord(request=request, findings=findings,
+            agent_executions=agent_executions,
             risk=calculate_risk(request, findings),
             deployment_checklist=[
                 "Confirm release owner and maintenance window.",
