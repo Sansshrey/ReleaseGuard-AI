@@ -55,6 +55,10 @@ app.MapPost("/api/jobs", async (JsonElement body, HttpContext context) =>
         return Results.BadRequest(new { error = "Body must contain repository, title and a non-empty changed_files array." });
 
     var jobId = Guid.NewGuid().ToString("N");
+    var connection = app.Configuration["ServiceBusConnection"];
+    if (string.IsNullOrWhiteSpace(connection))
+        return Results.Problem("ServiceBusConnection is not configured.", statusCode: 503);
+
     var queueName = app.Configuration["ReleaseGuardQueue"] ?? "releaseguard-analysis";
     var table = CreateJobTable(app.Configuration);
     await table.CreateIfNotExistsAsync(context.RequestAborted);
@@ -66,10 +70,6 @@ app.MapPost("/api/jobs", async (JsonElement body, HttpContext context) =>
         ["updatedAtUtc"] = DateTimeOffset.UtcNow.ToString("O")
     };
     await table.AddEntityAsync(entity, context.RequestAborted);
-
-    var connection = app.Configuration["ServiceBusConnection"];
-    if (string.IsNullOrWhiteSpace(connection))
-        return Results.Problem("ServiceBusConnection is not configured.", statusCode: 503);
 
     await using var client = new ServiceBusClient(connection);
     await using var sender = client.CreateSender(queueName);
