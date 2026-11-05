@@ -4,7 +4,7 @@
 
 ReleaseGuard AI is a local-first prototype that analyses a submitted change set, reports traceable findings, calculates a transparent risk score, and prepares a human-reviewed release decision.
 
-> **Current status:** A Python FastAPI local MVP is implemented, including read-only GitHub pull-request ingestion, concurrent local specialist agents, optional Semgrep CE / OSV-Scanner v2 adapters, and GitHub Actions JUnit / coverage evidence ingestion. Azure services, hosted LLM agents, production-grade managed storage, authenticated actors, and production deployment remain future roadmap items.
+> **Current status:** The Python FastAPI MVP includes read-only GitHub PR ingestion, SQLite persistence with a hash-chained audit trail, deterministic specialist analysis, optional Semgrep/OSV adapters, and GitHub Actions test evidence. An opt-in Microsoft Agent Framework + Azure OpenAI mode now adds four hosted specialist reviewers. C# API, Azure Functions, RAG/Azure AI Search, production cloud storage, and production deployment remain roadmap items.
 
 ## Implemented in this MVP
 
@@ -163,3 +163,29 @@ This is a real, local orchestration layer, but the specialists currently use
 bounded deterministic heuristics. It is **not yet an LLM-powered agent system**
 and does not yet use Microsoft Agent Framework, Azure AI Foundry, or hosted
 agent services. Submitted code is never executed.
+
+## Microsoft Agent Framework + Azure OpenAI (optional)
+
+Install the optional integration:
+
+```bash
+pip install -e ".[azure-ai]"
+```
+
+Set `RELEASEGUARD_AI_PROVIDER=azure_openai` and configure
+`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, and
+`AZURE_OPENAI_MODEL` (the Azure deployment name). The default provider remains
+`local`, so the existing MVP still runs without cloud credentials.
+
+Azure mode runs four Microsoft Agent Framework specialists (code, security,
+dependency and test intelligence) alongside the four deterministic specialists.
+The model agents have no tools, receive bounded JSON evidence with common
+credential patterns redacted, and must return strict JSON findings citing exact
+input evidence. Findings with fabricated evidence or unsubmitted file paths
+are rejected. Model output cannot directly set the risk score or approve a
+release; the existing weighted scoring engine and human decision endpoints
+remain authoritative.
+
+Hosted analysis transmits sanitised code snippets and release evidence to the
+configured Azure OpenAI resource. Enable it only where that transfer is allowed.
+See [docs/azure-openai-agents.md](docs/azure-openai-agents.md).
