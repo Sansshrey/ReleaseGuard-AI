@@ -7,26 +7,26 @@ Actions pull-request run.
 
 The repository CI workflow produces:
 
-- \`junit.xml\` using pytest's JUnit XML reporter.
-- \`coverage.xml\` using pytest-cov's Cobertura-compatible XML reporter.
-- A single artifact named \`releaseguard-test-evidence\`, retained for 14 days.
+- `junit.xml` using pytest's JUnit XML reporter.
+- `coverage.xml` using pytest-cov's Cobertura-compatible XML reporter.
+- A single artifact named `releaseguard-test-evidence`, retained for 14 days.
 
-The parser reads JUnit \`testsuite\` / \`testsuites\` counters and Cobertura
-\`coverage\` / \`class\` entries. It does not execute test code or workflow steps.
+The parser reads JUnit `testsuite` / `testsuites` counters and Cobertura
+`coverage` / `class` entries. It does not execute test code or workflow steps.
 
 ## API flow
 
 Call:
 
-\`POST /api/github/{owner}/{repo}/pulls/{number}/runs/{run_id}/analyse\`
+`POST /api/github/{owner}/{repo}/pulls/{number}/runs/{run_id}/analyse`
 
 ReleaseGuard fetches the PR diff and checks the workflow run. The run must:
 
 1. Be completed.
-2. Have event type \`pull_request\`.
+2. Have event type `pull_request`.
 3. Be associated with the requested pull request number.
 4. Have the same head SHA as the current PR revision.
-5. Contain an unexpired \`releaseguard-test-evidence\` artifact.
+5. Contain an unexpired `releaseguard-test-evidence` artifact.
 
 The fine-grained GitHub token requires Pull requests: read and Actions: read
 permissions for private repositories. Public repositories may be readable
@@ -35,13 +35,13 @@ without a token, subject to GitHub rate limits.
 ## Findings
 
 JUnit counters populate total, passed, failed and skipped test counts. Overall
-coverage populates \`coverage_percent\`. Per-file coverage is matched to changed
+coverage populates `coverage_percent`. Per-file coverage is matched to changed
 source paths by exact match or unique suffix match.
 
-- Changed source file below 60% coverage: \`changed_file_low_coverage\`.
-- Changed source file absent from report: \`changed_file_missing_coverage\`.
-- Overall coverage below 60%: \`low_coverage\`.
-- Failed or errored tests: \`failing_tests\`.
+- Changed source file below 60% coverage: `changed_file_low_coverage`.
+- Changed source file absent from report: `changed_file_missing_coverage`.
+- Overall coverage below 60%: `low_coverage`.
+- Failed or errored tests: `failing_tests`.
 
 ## Resource and parsing limits
 
