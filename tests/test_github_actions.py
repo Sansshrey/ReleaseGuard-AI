@@ -8,7 +8,7 @@ from releaseguard.github_actions import parse_evidence_artifact
 
 def _zip(files):
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w") as archive:
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name, content in files.items():
             archive.writestr(name, content)
     return buffer.getvalue()
@@ -63,7 +63,7 @@ def test_requires_at_least_one_recognized_report():
 
 def test_artifact_expansion_limit_is_enforced():
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w") as archive:
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("junit.xml", '<testsuite tests="0"/>')
         archive.writestr("coverage.xml", '<coverage line-rate="0.8"/>')
         archive.writestr("other.xml", "x" * (20 * 1024 * 1024))

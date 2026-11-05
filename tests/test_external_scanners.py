@@ -11,7 +11,7 @@ def _request():
         title="Update service",
         changed_files=[{
             "path": "src/service.py",
-            "patch": "@@ -1,0 +1,1 @@\n+result = eval(user_input)",
+            "patch": "@@ -1,0 +8,1 @@\n+result = eval(user_input)",
         }],
         dependency_manifest="requests==2.19.0\n",
     )

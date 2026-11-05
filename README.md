@@ -4,7 +4,7 @@
 
 ReleaseGuard AI is a local-first prototype that analyses a submitted change set, reports traceable findings, calculates a transparent risk score, and prepares a human-reviewed release decision.
 
-> **Current status:** A Python FastAPI local MVP is implemented, including read-only GitHub pull-request ingestion, concurrent local specialist agents, optional Semgrep CE / OSV-Scanner v2 adapters, and GitHub Actions JUnit / coverage evidence ingestion. Azure services, hosted LLM agents, production-grade managed storage, authenticated actors, and production deployment remain future roadmap items.
+> **Current status:** The Python FastAPI MVP includes read-only GitHub PR ingestion, SQLite persistence with a hash-chained audit trail, deterministic specialist analysis, optional Semgrep/OSV adapters, and GitHub Actions test evidence. An opt-in Microsoft Agent Framework + Azure OpenAI mode adds four hosted specialist reviewers, with optional Azure AI Search policy RAG and validated policy citations. A .NET 10 ASP.NET Core gateway, Service Bus-triggered Azure Functions worker, durable Azure Table job status, and a 100-case synthetic benchmark/evaluator are now included as opt-in integration components.
 
 ## Implemented in this MVP
 
@@ -159,7 +159,82 @@ findings. The supervisor records execution duration and finding count for each
 agent. If a specialist fails, the assessment fails rather than presenting a
 partial result as complete. Results are returned in stable agent order.
 
-This is a real, local orchestration layer, but the specialists currently use
-bounded deterministic heuristics. It is **not yet an LLM-powered agent system**
-and does not yet use Microsoft Agent Framework, Azure AI Foundry, or hosted
-agent services. Submitted code is never executed.
+This local orchestration layer runs deterministic specialists by default. When
+Azure mode is enabled, four Microsoft Agent Framework reviewers run alongside
+them. Optional Azure AI Search RAG supplies policy context with validated
+citations. Submitted code is never executed.
+
+## Microsoft Agent Framework + Azure OpenAI (optional)
+
+Install the optional integration:
+
+```bash
+pip install -e ".[azure-ai]"
+```
+
+Set `RELEASEGUARD_AI_PROVIDER=azure_openai` and configure
+`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, and
+`AZURE_OPENAI_MODEL` (the Azure deployment name). The default provider remains
+`local`, so the existing MVP still runs without cloud credentials.
+
+Azure mode runs four Microsoft Agent Framework specialists (code, security,
+dependency and test intelligence) alongside the four deterministic specialists.
+The model agents have no tools, receive bounded JSON evidence with common
+credential patterns redacted, and must return strict JSON findings citing exact
+input evidence. Findings with fabricated evidence or unsubmitted file paths
+are rejected. Model output cannot directly set the risk score or approve a
+release; the existing weighted scoring engine and human decision endpoints
+remain authoritative.
+
+Hosted analysis transmits sanitised code snippets and release evidence to the
+configured Azure OpenAI resource. Enable it only where that transfer is allowed.
+See [docs/azure-openai-agents.md](docs/azure-openai-agents.md).
+
+
+## Azure AI Search policy RAG (optional)
+
+ReleaseGuard can retrieve version-controlled security, dependency and release-readiness
+policy passages using Azure AI Search vector search. Azure OpenAI creates the embeddings.
+Retrieved passages are supplied to the hosted specialist agents as advisory context.
+Each AI finding can include policy citation IDs, and the API rejects IDs that were not
+retrieved for that review. Findings must still cite exact release evidence, and the
+deterministic risk score remains authoritative.
+
+Install with `pip install -e ".[azure-rag]"`. Set
+`RELEASEGUARD_RAG_ENABLED=true`, configure Azure AI Search endpoint/key/index and
+an Azure OpenAI embedding deployment, then index the starter corpus:
+
+```bash
+python -m releaseguard.rag --source-dir knowledge/policies
+```
+
+The starter Markdown corpus is in `knowledge/policies/`. See
+[docs/azure-ai-search-rag.md](docs/azure-ai-search-rag.md) for setup, security
+boundaries and limitations. RAG is off by default and requires the hosted
+Azure OpenAI provider.
+
+
+## .NET gateway and asynchronous analysis
+
+The `.NET 10` components live in `dotnet/`:
+
+- ASP.NET Core gateway with API-key protection and proxy routes to the Python API.
+- `POST /api/jobs` publishes an analysis request to Azure Service Bus and returns HTTP 202.
+- An Azure Functions isolated worker consumes the queue, calls the Python analysis API, and updates job state in Azure Table Storage.
+- `GET /api/jobs/{jobId}` returns queued, processing, completed or failed status.
+
+See [dotnet/README.md](dotnet/README.md) for configuration and run instructions. The gateway requires `GatewayApiKey`. Configure `ReleaseGuardBackendApiKey` in the gateway/worker and `RELEASEGUARD_API_KEY` in Python to protect the private service endpoint. The Python key is optional for local development and enforced when configured.
+
+These cloud components compile in CI but require your own Azure Service Bus and Storage resources for end-to-end execution. The queue worker is at-least-once; see the documented retry/idempotency limitation before production use.
+
+## Benchmark and evaluation
+
+The labelled synthetic dataset is `data/benchmark/release_cases.jsonl` (100 cases). It covers secret exposure, TLS, command injection, SQL injection, dependency constraints, missing test evidence, error handling, timeouts, access control and safe changes.
+
+Provide model outputs as JSONL with one object per `case_id`, containing `findings` and optional `latency_ms` / `estimated_cost_usd`:
+
+```bash
+python -m releaseguard.benchmark --predictions data/benchmark/predictions.jsonl --output benchmark-report.json
+```
+
+The evaluator reports finding precision/recall/F1, severity accuracy/macro-F1, exact-case accuracy, evidence validity, policy citation validity, p50/p95 latency and total estimated cost. No model accuracy, latency or cost result is claimed until real predictions are supplied and evaluated. The included corpus is synthetic and is not a substitute for a representative production-labelled dataset.

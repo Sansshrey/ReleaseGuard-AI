@@ -42,17 +42,16 @@ class ReleaseSupervisor:
                 executor.submit(self._run_one, agent, request): agent.name
                 for agent in self.agents
             }
-            try:
-                for future in as_completed(futures):
-                    name = futures[future]
-                    try:
-                        results[name] = future.result()
-                    except Exception as exc:
-                        for pending in futures:
-                            pending.cancel()
-                        raise AgentExecutionError(
-                            f"Specialist '{name}' failed; assessment was not completed"
-                        ) from exc
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    results[name] = future.result()
+                except Exception as exc:
+                    for pending in futures:
+                        pending.cancel()
+                    raise AgentExecutionError(
+                        f"Specialist '{name}' failed; assessment was not completed"
+                    ) from exc
 
         findings: list[Finding] = []
         executions: list[AgentExecution] = []
@@ -73,3 +72,29 @@ class ReleaseSupervisor:
         findings = agent.run(request)
         elapsed_ms = round((perf_counter() - started) * 1000, 2)
         return findings, elapsed_ms
+
+
+def build_supervisor_from_environment() -> ReleaseSupervisor:
+    """Build local specialists and optionally add Microsoft Agent Framework agents."""
+    import os
+
+    agents: list[SpecialistAgent] = [
+        CodeAnalysisAgent(),
+        SecurityAnalysisAgent(),
+        DependencyAnalysisAgent(),
+        TestIntelligenceAgent(),
+    ]
+    provider = os.getenv("RELEASEGUARD_AI_PROVIDER", "local").strip().lower()
+    if provider in {"", "local"}:
+        return ReleaseSupervisor(agents=agents)
+    if provider != "azure_openai":
+        raise ValueError("RELEASEGUARD_AI_PROVIDER must be 'local' or 'azure_openai'")
+
+    from .llm_agents import build_azure_openai_agents
+
+    knowledge_base = None
+    if os.getenv("RELEASEGUARD_RAG_ENABLED", "false").strip().lower() in {"1", "true", "yes"}:
+        from .rag import AzureAISearchKnowledgeBase
+        knowledge_base = AzureAISearchKnowledgeBase.from_environment()
+    agents.extend(build_azure_openai_agents(knowledge_base=knowledge_base))
+    return ReleaseSupervisor(agents=agents)

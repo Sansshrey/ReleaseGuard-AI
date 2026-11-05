@@ -16,6 +16,13 @@ class Severity(StrEnum):
     HIGH = "high"
     CRITICAL = "critical"
 
+class PolicyCitation(BaseModel):
+    citation_id: str
+    source: str
+    section: str
+    title: str
+
+
 class Finding(BaseModel):
     finding_id: str = Field(default_factory=lambda: f"RG-{uuid4().hex[:8].upper()}")
     agent: str
@@ -29,6 +36,8 @@ class Finding(BaseModel):
     evidence: str
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     source: str = "local_heuristic"
+    policy_references: list[str] = Field(default_factory=list, max_length=10)
+    policy_citations: list[PolicyCitation] = Field(default_factory=list, max_length=10)
 
 class ChangedFile(BaseModel):
     path: str = Field(min_length=1, max_length=500)

@@ -36,3 +36,35 @@ jobs:
           retention-days: 14
       - name: Check formatting and lint
         run: ruff check --select E4,E7,E9,F src tests
+
+  dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build ASP.NET Core gateway
+        run: dotnet build dotnet/ReleaseGuard.Gateway/ReleaseGuard.Gateway.csproj --configuration Release
+      - name: Build Azure Functions isolated worker
+        run: dotnet build dotnet/ReleaseGuard.Functions/ReleaseGuard.Functions.csproj --configuration Release
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+      - name: Build React dashboard
+        working-directory: frontend
+        run: npm run build
