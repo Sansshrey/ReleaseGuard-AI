@@ -42,17 +42,16 @@ class ReleaseSupervisor:
                 executor.submit(self._run_one, agent, request): agent.name
                 for agent in self.agents
             }
-            try:
-                for future in as_completed(futures):
-                    name = futures[future]
-                    try:
-                        results[name] = future.result()
-                    except Exception as exc:
-                        for pending in futures:
-                            pending.cancel()
-                        raise AgentExecutionError(
-                            f"Specialist '{name}' failed; assessment was not completed"
-                        ) from exc
+            for future in as_completed(futures):
+                name = futures[future]
+                try:
+                    results[name] = future.result()
+                except Exception as exc:
+                    for pending in futures:
+                        pending.cancel()
+                    raise AgentExecutionError(
+                        f"Specialist '{name}' failed; assessment was not completed"
+                    ) from exc
 
         findings: list[Finding] = []
         executions: list[AgentExecution] = []
