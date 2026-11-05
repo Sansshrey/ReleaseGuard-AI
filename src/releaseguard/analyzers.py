@@ -41,22 +41,37 @@ CODE_PATTERNS = [
 ]
 
 
-def _line(text: str, pos: int) -> int:
-    return text.count("\n", 0, pos) + 1
+def _added_lines(patch: str) -> tuple[str, list[int]]:
+    """Return added source text and its actual new-file line numbers."""
+    added: list[str] = []
+    line_numbers: list[int] = []
+    new_line: int | None = None
+    hunk = re.compile(r"^@@ -\\d+(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@")
+    for raw in patch.splitlines():
+        match = hunk.match(raw)
+        if match:
+            new_line = int(match.group(1))
+        elif raw.startswith(("+++", "---")):
+            continue
+        elif raw.startswith("+") and new_line is not None:
+            added.append(raw[1:])
+            line_numbers.append(new_line)
+            new_line += 1
+        elif raw.startswith("-"):
+            continue
+        elif raw.startswith(" ") and new_line is not None:
+            new_line += 1
+    return "\\n".join(added), line_numbers
 
 
-def _added_lines(patch: str) -> str:
-    """Inspect added diff lines only, excluding diff metadata."""
-    return "\n".join(
-        line[1:] for line in patch.splitlines()
-        if line.startswith("+") and not line.startswith("+++")
-    )
-
+def _source_line(text: str, pos: int, line_numbers: list[int]) -> int | None:
+    added_index = text.count("\\n", 0, pos)
+    return line_numbers[added_index] if added_index < len(line_numbers) else None
 
 def analyse_security_changes(request: ReleaseRequest) -> list[Finding]:
     findings: list[Finding] = []
     for changed in request.changed_files:
-        added = _added_lines(changed.patch)
+        added, source_lines = _added_lines(changed.patch)
         for pattern, label in SECRET_PATTERNS:
             for match in pattern.finditer(added):
                 findings.append(Finding(
@@ -64,7 +79,7 @@ def analyse_security_changes(request: ReleaseRequest) -> list[Finding]:
                     category="possible_secret", title=label,
                     description="A credential-like value matched in an added diff line.",
                     recommendation="Remove the value and rotate it if genuine; use a managed secret store.",
-                    file=changed.path, line=_line(added, match.start()),
+                    file=changed.path, line=_source_line(added, match.start(), source_lines),
                     evidence=match.group(0)[:120], confidence=0.85,
                 ))
         for pattern, label in SECURITY_PATTERNS:
@@ -99,7 +114,7 @@ def analyse_code_changes(request: ReleaseRequest) -> list[Finding]:
                     category="code_quality", title=label,
                     description="A maintainability or error-handling risk was found in added diff content.",
                     recommendation=recommendation, file=changed.path,
-                    line=_line(added, match.start()), evidence=match.group(0)[:120],
+                    line=_source_line(added, match.start(), source_lines), evidence=match.group(0)[:120],
                     confidence=0.8,
                 ))
     return findings
