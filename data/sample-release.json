@@ -1,0 +1,15 @@
+{
+  "repository": "example/payments-api",
+  "pull_request": 42,
+  "title": "Add payment callback validation",
+  "base_branch": "main",
+  "head_branch": "feature/payment-callback",
+  "changed_files": [
+    {"path": "src/security.py", "patch": "def configure_client():\n    requests.get(endpoint, verify=False)\n"},
+    {"path": "src/payment.py", "patch": "def process_payment(payload):\n    return handle(payload)\n"}
+  ],
+  "dependency_manifest": "fastapi==0.115.0\nrequests\n",
+  "dependency_ecosystem": "python",
+  "test_summary": {"total": 24, "passed": 22, "failed": 2, "coverage_percent": 58.5},
+  "api_compatibility_score": 35
+}
