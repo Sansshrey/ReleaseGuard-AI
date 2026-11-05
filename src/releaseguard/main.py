@@ -1,5 +1,8 @@
 """FastAPI entry point for the ReleaseGuard AI local MVP."""
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+import hmac
+import os
 from pydantic import BaseModel, Field
 from .github_client import GitHubClient, GitHubIntegrationError
 from .github_ingestion import build_release_request
@@ -103,3 +106,14 @@ def reject_release(release_id: str, body: DecisionRequest):
         return service.decide(release_id, False, body.note)
     except ReleaseNotFoundError:
         raise HTTPException(status_code=404, detail="Release assessment not found")
+
+
+@app.middleware("http")
+async def optional_service_api_key(request: Request, call_next):
+    """Protect service endpoints when RELEASEGUARD_API_KEY is configured."""
+    expected = os.getenv("RELEASEGUARD_API_KEY", "").strip()
+    if expected and request.url.path != "/health":
+        supplied = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(expected, supplied):
+            return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+    return await call_next(request)
