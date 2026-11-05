@@ -169,6 +169,41 @@ def analyse_tests(request: ReleaseRequest) -> list[Finding]:
             recommendation="Run relevant unit, integration and regression tests and attach results.",
             evidence="test_summary.total = 0",
         ))
+    if summary.coverage_files:
+        coverage_by_path = {
+            path.replace("\\", "/").lstrip("./"): value
+            for path, value in summary.coverage_files.items()
+        }
+        for changed in request.changed_files:
+            path = changed.path.replace("\\", "/").lstrip("./")
+            if path.endswith((".py", ".cs", ".js", ".jsx", ".ts", ".tsx", ".go", ".java")):
+                coverage = coverage_by_path.get(path)
+                if coverage is None:
+                    matches = [
+                        value for report_path, value in coverage_by_path.items()
+                        if report_path.endswith("/" + path) or path.endswith("/" + report_path)
+                    ]
+                    coverage = matches[0] if len(matches) == 1 else None
+                if coverage is None:
+                    findings.append(Finding(
+                        agent="test_intelligence", severity=Severity.MEDIUM,
+                        category="changed_file_missing_coverage",
+                        title="Changed source file is absent from coverage report",
+                        description=f"No per-file coverage entry matched '{changed.path}'.",
+                        recommendation="Add or configure tests so this changed module is included in coverage measurement.",
+                        file=changed.path, evidence=f"coverage report did not include {changed.path}",
+                        confidence=0.85, source="github_actions",
+                    ))
+                elif coverage < 60:
+                    findings.append(Finding(
+                        agent="test_intelligence", severity=Severity.MEDIUM,
+                        category="changed_file_low_coverage",
+                        title="Changed source file has low test coverage",
+                        description=f"Coverage for '{changed.path}' is {coverage:.1f}%.",
+                        recommendation="Add focused tests for the changed module and review uncovered branches.",
+                        file=changed.path, evidence=f"per_file_coverage={coverage:.2f}%",
+                        confidence=0.95, source="github_actions",
+                    ))
     if summary.coverage_percent is not None and summary.coverage_percent < 60:
         findings.append(Finding(
             agent="test_intelligence", severity=Severity.MEDIUM,
