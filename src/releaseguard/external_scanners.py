@@ -20,18 +20,40 @@ SCANNER_TIMEOUT_SECONDS = 45
 MAX_OUTPUT_CHARS = 2_000_000
 
 
-def _added_source(patch: str) -> str:
-    """Extract added lines from a unified diff; accept raw source as a fallback."""
+def _added_source(patch: str) -> tuple[str, list[int]]:
+    """Return added diff lines and their corresponding new-file line numbers."""
     added: list[str] = []
+    source_lines: list[int] = []
+    new_line: int | None = None
     saw_hunk = False
+    hunk = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
     for raw in patch.splitlines():
-        if raw.startswith("@@"):
+        match = hunk.match(raw)
+        if match:
             saw_hunk = True
+            new_line = int(match.group(1))
         elif raw.startswith(("+++", "---")):
             continue
-        elif raw.startswith("+") and saw_hunk:
+        elif raw.startswith("+") and new_line is not None:
             added.append(raw[1:])
-    return "\n".join(added) if saw_hunk else patch
+            source_lines.append(new_line)
+            new_line += 1
+        elif raw.startswith("-"):
+            continue
+        elif raw.startswith(" ") and new_line is not None:
+            new_line += 1
+    if not saw_hunk:
+        lines = patch.splitlines()
+        return patch, list(range(1, len(lines) + 1))
+    return "\n".join(added), source_lines
+
+
+def _original_line(temporary_line: Any, source_lines: list[int]) -> int | None:
+    if not isinstance(temporary_line, int) or temporary_line < 1:
+        return None
+    if temporary_line > len(source_lines):
+        return None
+    return source_lines[temporary_line - 1]
 
 
 def _run_json(command: list[str], cwd: Path) -> dict[str, Any] | None:
@@ -78,8 +100,9 @@ def scan_semgrep(request: ReleaseRequest) -> list[Finding]:
     with tempfile.TemporaryDirectory(prefix="releaseguard-semgrep-") as temp:
         root = Path(temp)
         targets: list[Path] = []
+        line_maps: dict[str, list[int]] = {}
         for index, changed in enumerate(request.changed_files):
-            source = _added_source(changed.patch)
+            source, source_lines = _added_source(changed.patch)
             if not source.strip():
                 continue
             suffix = Path(changed.path).suffix
@@ -87,6 +110,7 @@ def scan_semgrep(request: ReleaseRequest) -> list[Finding]:
             target = root / f"changed_{index}{suffix}"
             target.write_text(source, encoding="utf-8")
             targets.append(target)
+            line_maps[target.name] = source_lines
 
         if not targets:
             return []
@@ -116,7 +140,8 @@ def scan_semgrep(request: ReleaseRequest) -> list[Finding]:
             except (ValueError, IndexError, AttributeError):
                 original_file = None
             start = item.get("start") or {}
-            line = start.get("line") if isinstance(start, dict) else None
+            temporary_line = start.get("line") if isinstance(start, dict) else None
+            line = _original_line(temporary_line, line_maps.get(source_path or "", []))
             message = str(extra.get("message") or item.get("check_id") or "Semgrep finding")
             check_id = str(item.get("check_id") or "semgrep")
             findings.append(Finding(
