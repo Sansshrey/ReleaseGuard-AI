@@ -126,6 +126,8 @@ def test_agent_includes_retrieved_policy_and_validates_policy_citations():
     )
     findings = agent.run(source)
     assert findings[0].policy_references == ["policy-chunk-1"]
+    assert findings[0].policy_citations[0].source == "security.md"
+    assert findings[0].policy_citations[0].section == "TLS"
     assert findings[0].source == "azure_openai_agent_framework_rag"
     assert "TLS verification must remain enabled" in fake.prompt
 
