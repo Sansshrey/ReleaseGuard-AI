@@ -29,13 +29,13 @@ CODE_PATTERNS = [
     (
         re.compile(r"(?m)^\s*except\s*:\s*(?:#.*)?$"),
         "Bare exception handler",
-        "medium",
+        Severity.MEDIUM,
         "Catch a specific exception type so unexpected failures are not hidden.",
     ),
     (
         re.compile(r"(?m)^\s*def\s+\w+\s*\([^\n)]*=\s*(?:\[\]|\{\}|set\(\))"),
         "Mutable default argument",
-        "medium",
+        Severity.MEDIUM,
         "Use None as the default and create a new mutable value inside the function.",
     ),
 ]
@@ -46,7 +46,7 @@ def _added_lines(patch: str) -> tuple[str, list[int]]:
     added: list[str] = []
     line_numbers: list[int] = []
     new_line: int | None = None
-    hunk = re.compile(r"^@@ -\\d+(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@")
+    hunk = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
     for raw in patch.splitlines():
         match = hunk.match(raw)
         if match:
@@ -61,12 +61,13 @@ def _added_lines(patch: str) -> tuple[str, list[int]]:
             continue
         elif raw.startswith(" ") and new_line is not None:
             new_line += 1
-    return "\\n".join(added), line_numbers
+    return "\n".join(added), line_numbers
 
 
 def _source_line(text: str, pos: int, line_numbers: list[int]) -> int | None:
-    added_index = text.count("\\n", 0, pos)
+    added_index = text.count("\n", 0, pos)
     return line_numbers[added_index] if added_index < len(line_numbers) else None
+
 
 def analyse_security_changes(request: ReleaseRequest) -> list[Finding]:
     findings: list[Finding] = []
@@ -89,7 +90,7 @@ def analyse_security_changes(request: ReleaseRequest) -> list[Finding]:
                     category="risky_configuration", title=label,
                     description="A potentially unsafe pattern was found in added diff content.",
                     recommendation="Review the surrounding code and choose a safer configuration or API.",
-                    file=changed.path, line=_line(added, match.start()),
+                    file=changed.path, line=_source_line(added, match.start(), source_lines),
                     evidence=match.group(0)[:120], confidence=0.8,
                 ))
     return findings
@@ -98,7 +99,7 @@ def analyse_security_changes(request: ReleaseRequest) -> list[Finding]:
 def analyse_code_changes(request: ReleaseRequest) -> list[Finding]:
     findings: list[Finding] = []
     for changed in request.changed_files:
-        added = _added_lines(changed.patch)
+        added, source_lines = _added_lines(changed.patch)
         if re.search(r"(?i)(auth|permission|role|token)", changed.path):
             findings.append(Finding(
                 agent="code_analysis", severity=Severity.MEDIUM,
@@ -110,12 +111,12 @@ def analyse_code_changes(request: ReleaseRequest) -> list[Finding]:
         for pattern, label, severity, recommendation in CODE_PATTERNS:
             for match in pattern.finditer(added):
                 findings.append(Finding(
-                    agent="code_analysis", severity=Severity(severity),
+                    agent="code_analysis", severity=severity,
                     category="code_quality", title=label,
                     description="A maintainability or error-handling risk was found in added diff content.",
                     recommendation=recommendation, file=changed.path,
-                    line=_source_line(added, match.start(), source_lines), evidence=match.group(0)[:120],
-                    confidence=0.8,
+                    line=_source_line(added, match.start(), source_lines),
+                    evidence=match.group(0)[:120], confidence=0.8,
                 ))
     return findings
 
