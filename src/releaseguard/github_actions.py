@@ -71,12 +71,14 @@ class GitHubActionsClient(GitHubClient):
 def _safe_xml(data: bytes) -> ET.Element:
     if len(data) > MAX_XML_BYTES:
         raise ValueError("XML report exceeds the 5 MB limit.")
-    # ElementTree does not fetch external entities; reject DTD/entity declarations too.
-    upper = data.upper()
-    if b"<!DOCTYPE" in upper or b"<!ENTITY" in upper:
+    try:
+        decoded = data.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError("XML report must use UTF-8 encoding.") from exc
+    upper = decoded.upper()
+    if "<!DOCTYPE" in upper or "<!ENTITY" in upper:
         raise ValueError("XML report contains a prohibited DTD/entity declaration.")
-    return ET.fromstring(data)
-
+    return ET.fromstring(decoded)
 
 def parse_evidence_artifact(archive_bytes: bytes, run_id: int) -> TestSummary:
     """Parse JUnit XML and Cobertura coverage.xml without extracting ZIP paths."""
@@ -114,7 +116,10 @@ def parse_evidence_artifact(archive_bytes: bytes, run_id: int) -> TestSummary:
                 "junit" in leaf or "test-results" in leaf or leaf == "coverage.xml"
             )):
                 continue
-            data = archive.read(item)
+            with archive.open(item) as report_stream:
+                data = report_stream.read(MAX_XML_BYTES + 1)
+            if len(data) > MAX_XML_BYTES:
+                continue
             try:
                 root = _safe_xml(data)
             except (ET.ParseError, ValueError):
