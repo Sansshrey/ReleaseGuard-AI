@@ -47,6 +47,10 @@ class TestSummary(BaseModel):
     passed: int = Field(default=0, ge=0)
     failed: int = Field(default=0, ge=0)
     coverage_percent: float | None = Field(default=None, ge=0, le=100)
+    coverage_files: dict[str, float] = Field(default_factory=dict)
+    evidence_source: str | None = None
+    workflow_run_id: int | None = Field(default=None, ge=1)
+    skipped: int = Field(default=0, ge=0)
 
 class ReleaseRequest(BaseModel):
     repository: str = Field(min_length=1, max_length=300)
