@@ -1,35 +1,48 @@
 # Architecture
 
-The current MVP is a synchronous, local-first Python service.
+The current application is a local-first Python service with an optional hosted
+LLM analysis mode.
 
 1. FastAPI validates a release submission with Pydantic.
-2. The release service runs bounded local analyzers on submitted patch text and metadata.
-3. Findings are aggregated by a deterministic risk engine.
-4. A release record is persisted in SQLite and returned with a checklist and rollback plan.
-5. Release creation and human decisions append hash-chained audit events in the same database transaction.
-6. A human decision can be recorded through approve/reject endpoints and reviewed through the audit API.
+2. The release service runs four deterministic specialists in bounded parallel
+   execution. In optional Azure mode, it also runs four Microsoft Agent
+   Framework specialists against sanitised evidence.
+3. Specialist findings are validated and aggregated. LLM findings must cite
+   exact supplied evidence and a changed-file path.
+4. The deterministic risk engine computes the weighted score; model output
+   cannot directly set a score or release decision.
+5. A release record is persisted in SQLite. Creation and human decisions append
+   hash-chained audit events.
+6. Human approval/rejection remains an explicit API action.
 
 ```mermaid
 flowchart TD
   A[Release request] --> B[FastAPI validation]
   B --> C[Release service]
-  C --> D[Code and security heuristics]
-  C --> E[Dependency manifest checks]
-  C --> F[Test evidence checks]
-  D --> G[Structured findings]
-  E --> G
+  C --> D[Deterministic specialists]
+  C --> E{Azure OpenAI enabled?}
+  E -->|No| G[Evidence aggregation]
+  E -->|Yes| F[Microsoft Agent Framework specialists]
   F --> G
+  D --> G
   G --> H[Deterministic risk engine]
   H --> I[Release report]
   I --> J[Human approval or rejection]
   C --> K[(SQLite release store)]
-  J --> L[Append-only audit event]
+  J --> L[Hash-chained audit event]
   L --> K
 ```
 
 ## Current limitations
 
-- SQLite is intended for local development; production should use a managed database and backup/restore strategy.
-- No live GitHub integration, webhook receiver, Azure resource, hosted LLM or deployment integration is implemented.
-- Pattern checks may produce false positives and are not a substitute for Semgrep, OSV-Scanner or professional code review.
-- The API currently has no authentication, authorisation or rate limiting. The local SQLite audit log is tamper-evident but not tamper-proof against database administrators. It is a development prototype and should not be exposed publicly.
+- Azure OpenAI mode is optional and requires an Azure deployment and credentials.
+  It sends sanitised release snippets to that configured resource.
+- Model findings are advisory and evidence-validated; no model has tools or
+  permission to execute source, modify GitHub, or approve a release.
+- SQLite is intended for local development; production should use managed
+  storage, backups and restricted access.
+- The API still lacks production authentication/authorisation and rate limits.
+- RAG, Azure AI Search, C# ASP.NET Core, Azure Functions, frontend and cloud
+  deployment are not yet implemented.
+- Local pattern checks may produce false positives and are not a substitute for
+  dedicated scanners or professional code review.
